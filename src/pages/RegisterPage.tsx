@@ -1,4 +1,5 @@
-import { FormEvent, useState } from 'react'
+import { useState } from 'react'
+import type { FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '@/services/supabaseClient'
 
@@ -56,18 +57,13 @@ export function RegisterPage() {
       <form onSubmit={handleSubmit} style={{ width: 'min(420px, 92vw)', padding: 28, border: '1px solid var(--color-border)', borderRadius: 24, background: 'var(--color-surface)' }}>
         <h1>Inscription</h1>
         <p style={{ color: 'var(--color-text-muted)' }}>Crée ton compte et ajoute tes animés.</p>
-
         <label>Pseudo</label>
         <input value={username} onChange={(event) => setUsername(event.target.value)} required style={{ width: '100%', margin: '8px 0 16px', padding: 12 }} />
-
         <label>Email</label>
         <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} required style={{ width: '100%', margin: '8px 0 16px', padding: 12 }} />
-
         <label>Mot de passe</label>
         <input type="password" minLength={6} value={password} onChange={(event) => setPassword(event.target.value)} required style={{ width: '100%', margin: '8px 0 16px', padding: 12 }} />
-
         {errorMessage ? <p style={{ color: '#ff6b6b' }}>{errorMessage}</p> : null}
-
         <button type="submit" disabled={loading} style={{ width: '100%', padding: 12 }}>
           {loading ? 'Création...' : 'Créer mon compte'}
         </button>
