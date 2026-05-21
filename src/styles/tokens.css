@@ -13,6 +13,8 @@
   --color-text-muted: #9999a8;
   --color-accent: #7c5cff;
   --color-accent-hi: #9b7cff;
+  --color-danger: #ff4d6d;
+  --color-success: #4ade80;
 
   /* Typography */
   --font-sans: "Inter", system-ui, -apple-system, sans-serif;
