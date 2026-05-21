@@ -34,7 +34,8 @@ export function NotificationsPage() {
   })
 
   async function markAsRead(id: string) {
-    await supabase.from('notifications').update({ read: true }).eq('id', id)
+    const readPayload = { read: true }
+    await supabase.from('notifications').update(readPayload).eq('id', id)
     await queryClient.invalidateQueries({ queryKey: ['notifications'] })
   }
 
@@ -42,7 +43,6 @@ export function NotificationsPage() {
     <main>
       <h1>Notifications</h1>
       <p>Messages envoyés par l’administration.</p>
-
       {isLoading ? <p>Chargement...</p> : null}
       {error ? <p>Impossible de charger les notifications.</p> : null}
       {!isLoading && notifications.length === 0 ? <p>Aucune notification pour le moment.</p> : null}
