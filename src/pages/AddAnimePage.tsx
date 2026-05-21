@@ -1,4 +1,5 @@
-import { ChangeEvent, FormEvent, useState } from 'react'
+import { useState } from 'react'
+import type { ChangeEvent, FormEvent } from 'react'
 import { supabase } from '@/services/supabaseClient'
 
 export function AddAnimePage() {
@@ -26,11 +27,7 @@ export function AddAnimePage() {
 
     const extension = posterFile.name.split('.').pop() ?? 'webp'
     const path = `${userId}/${crypto.randomUUID()}.${extension}`
-
-    const { error } = await supabase.storage.from('anime-posters').upload(path, posterFile, {
-      cacheControl: '3600',
-      upsert: false,
-    })
+    const { error } = await supabase.storage.from('anime-posters').upload(path, posterFile)
 
     if (error) throw error
 
@@ -40,7 +37,6 @@ export function AddAnimePage() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-
     setLoading(true)
     setSuccessMessage('')
     setErrorMessage('')
@@ -54,15 +50,15 @@ export function AddAnimePage() {
       if (!posterFile && !imageUrl.trim()) throw new Error('Ajoute une affiche via fichier ou URL.')
 
       const finalPosterUrl = await uploadPoster(user.id)
-
-      const { error } = await supabase.from('animes').insert({
+      const animePayload = {
         user_id: user.id,
         title: title.trim(),
         genre: genre.trim() || null,
         poster_url: finalPosterUrl,
         watch_url: watchUrl.trim(),
-      })
+      }
 
+      const { error } = await supabase.from('animes').insert(animePayload)
       if (error) throw error
 
       setTitle('')
@@ -87,10 +83,8 @@ export function AddAnimePage() {
         <input placeholder="Titre" value={title} onChange={(event) => setTitle(event.target.value)} required />
         <input placeholder="Genre" value={genre} onChange={(event) => setGenre(event.target.value)} />
         <input placeholder="Lien de visionnage" value={watchUrl} onChange={(event) => setWatchUrl(event.target.value)} required />
-
         <label>Uploader une affiche depuis ton appareil</label>
         <input type="file" accept="image/*" onChange={handleFileChange} />
-
         <label>Ou mettre l’URL de l’affiche</label>
         <input placeholder="URL image" value={imageUrl} onChange={(event) => setImageUrl(event.target.value)} disabled={Boolean(posterFile)} />
 
@@ -101,9 +95,7 @@ export function AddAnimePage() {
           </div>
         ) : null}
 
-        <button type="submit" disabled={loading}>
-          {loading ? 'Ajout...' : 'Ajouter à la bibliothèque'}
-        </button>
+        <button type="submit" disabled={loading}>{loading ? 'Ajout...' : 'Ajouter à la bibliothèque'}</button>
       </form>
 
       {successMessage ? <p>{successMessage}</p> : null}
