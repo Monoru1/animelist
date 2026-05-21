@@ -35,7 +35,7 @@ export type Database = {
       }
     }
     Views: Record<string, never>
-    Functions: { is_admin: { Args: never; Returns: boolean } }
+    Functions: { is_admin: { Args: Record<string, never>; Returns: boolean } }
     Enums: Record<string, never>
     CompositeTypes: Record<string, never>
   }
