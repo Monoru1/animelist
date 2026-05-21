@@ -1,4 +1,5 @@
-import { FormEvent, useState } from 'react'
+import { useState } from 'react'
+import type { FormEvent } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/services/supabaseClient'
 
@@ -65,20 +66,23 @@ export function AdminPage() {
       const { error: deleteError } = await supabase.from('animes').delete().eq('id', targetAnime.id)
       if (deleteError) throw deleteError
 
-      await supabase.from('notifications').insert({
+      const notificationPayload = {
         user_id: targetAnime.user_id,
         title: 'Animé supprimé',
         message: `Ton animé « ${targetAnime.title} » a été supprimé par la modération.`,
         reason: reason.trim(),
-      })
+      }
 
-      await supabase.from('moderation_logs').insert({
+      const logPayload = {
         admin_id: adminId,
         target_user_id: targetAnime.user_id,
         target_anime_id: targetAnime.id,
         action: 'delete_anime',
         reason: reason.trim(),
-      })
+      }
+
+      await supabase.from('notifications').insert(notificationPayload)
+      await supabase.from('moderation_logs').insert(logPayload)
 
       setReason('')
       setTargetAnime(null)
@@ -96,7 +100,6 @@ export function AdminPage() {
     <section>
       <h1>Administration</h1>
       <p>Gestion interne depuis le site. Aucun besoin d’aller dans Supabase.</p>
-
       {isLoading ? <p>Chargement admin...</p> : null}
       {error ? <p>Impossible de charger les données admin.</p> : null}
       {message ? <p>{message}</p> : null}
