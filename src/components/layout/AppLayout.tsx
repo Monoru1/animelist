@@ -1,8 +1,23 @@
+import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { supabase } from '@/services/supabaseClient'
 
 export function AppLayout() {
   const navigate = useNavigate()
+  const [isAdmin, setIsAdmin] = useState(false)
+
+  useEffect(() => {
+    async function loadRole() {
+      const { data: authData } = await supabase.auth.getUser()
+      const userId = authData.user?.id
+      if (!userId) return
+
+      const { data } = await supabase.from('profiles').select('role').eq('id', userId).single()
+      setIsAdmin(data?.role === 'admin')
+    }
+
+    void loadRole()
+  }, [])
 
   async function signOut() {
     await supabase.auth.signOut()
@@ -38,9 +53,11 @@ export function AppLayout() {
             Notifications
           </NavLink>
 
-          <NavLink to="/admin" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
-            Admin
-          </NavLink>
+          {isAdmin ? (
+            <NavLink to="/admin" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
+              Admin
+            </NavLink>
+          ) : null}
         </nav>
 
         <button
