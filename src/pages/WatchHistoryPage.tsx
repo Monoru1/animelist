@@ -2,16 +2,22 @@ import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/services/supabaseClient'
 
+type HistoryAnime = {
+  id: string
+  title: string
+  poster_url: string
+  genre: string | null
+  watch_url: string
+}
+
 type HistoryRow = {
   id: string
   last_watched_at: string
-  animes?: {
-    id: string
-    title: string
-    poster_url: string
-    genre: string | null
-    watch_url: string
-  } | null
+  animes?: HistoryAnime | HistoryAnime[] | null
+}
+
+function getHistoryAnime(animes: HistoryRow['animes']) {
+  return Array.isArray(animes) ? animes[0] : animes
 }
 
 async function fetchHistory(): Promise<HistoryRow[]> {
@@ -26,7 +32,7 @@ async function fetchHistory(): Promise<HistoryRow[]> {
     .order('last_watched_at', { ascending: false })
 
   if (error) throw error
-  return (data ?? []) as HistoryRow[]
+  return (data ?? []) as unknown as HistoryRow[]
 }
 
 export function WatchHistoryPage() {
@@ -45,19 +51,27 @@ export function WatchHistoryPage() {
       {!isLoading && history.length === 0 ? <p>Aucun historique pour le moment.</p> : null}
 
       <div className="card-grid">
-        {history.map((item) => item.animes ? (
-          <article key={item.id} className="anime-card">
-            <Link to={`/anime/${item.animes.id}`} style={{ textDecoration: 'none' }}>
-              <img src={item.animes.poster_url} alt={item.animes.title} />
-            </Link>
-            <div style={{ padding: 16 }}>
-              <h2 style={{ fontSize: 20, marginTop: 0 }}>{item.animes.title}</h2>
-              {item.animes.genre ? <p style={{ color: 'var(--color-text-muted)' }}>{item.animes.genre}</p> : null}
-              <p style={{ color: 'var(--color-text-muted)', fontSize: 13 }}>Dernier visionnage : {new Date(item.last_watched_at).toLocaleString()}</p>
-              <a className="primary-btn" href={item.animes.watch_url} target="_blank" rel="noreferrer" style={{ display: 'block', textAlign: 'center', textDecoration: 'none' }}>Reprendre</a>
-            </div>
-          </article>
-        ) : null)}
+        {history.map((item) => {
+          const anime = getHistoryAnime(item.animes)
+          if (!anime) return null
+
+          return (
+            <article key={item.id} className="anime-card">
+              <Link to={`/anime/${anime.id}`} style={{ textDecoration: 'none' }}>
+                <img src={anime.poster_url} alt={anime.title} />
+              </Link>
+              <div style={{ padding: 16 }}>
+                <h2 style={{ fontSize: 20, marginTop: 0 }}>{anime.title}</h2>
+                {anime.genre ? <p style={{ color: 'var(--color-text-muted)' }}>{anime.genre}</p> : null}
+                <p style={{ color: 'var(--color-text-muted)', fontSize: 13 }}>Dernier visionnage : {new Date(item.last_watched_at).toLocaleString()}</p>
+                <div style={{ display: 'grid', gap: 10 }}>
+                  <Link className="secondary-btn" to={`/anime/${anime.id}`} style={{ textAlign: 'center', textDecoration: 'none' }}>Voir la fiche</Link>
+                  <a className="primary-btn" href={anime.watch_url} target="_blank" rel="noreferrer" style={{ textAlign: 'center', textDecoration: 'none' }}>Reprendre</a>
+                </div>
+              </div>
+            </article>
+          )
+        })}
       </div>
     </main>
   )
