@@ -33,43 +33,17 @@ export function AppLayout() {
         </p>
 
         <nav style={{ display: 'grid', gap: 10 }}>
-          <NavLink to="/library" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
-            Bibliothèque
-          </NavLink>
-
-          <NavLink to="/history" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
-            Continuer
-          </NavLink>
-
-          <NavLink to="/add" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
-            Ajouter
-          </NavLink>
-
-          <NavLink to="/my-playlist" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
-            Ma playlist
-          </NavLink>
-
-          <NavLink to="/profile" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
-            Profil
-          </NavLink>
-
-          <NavLink to="/notifications" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
-            Notifications
-          </NavLink>
-
-          {isAdmin ? (
-            <NavLink to="/admin" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
-              Admin
-            </NavLink>
-          ) : null}
+          <NavLink to="/library" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>Bibliothèque</NavLink>
+          <NavLink to="/history" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>Continuer</NavLink>
+          <NavLink to="/favorites" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>Favoris</NavLink>
+          <NavLink to="/add" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>Ajouter</NavLink>
+          <NavLink to="/my-playlist" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>Ma playlist</NavLink>
+          <NavLink to="/profile" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>Profil</NavLink>
+          <NavLink to="/notifications" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>Notifications</NavLink>
+          {isAdmin ? <NavLink to="/admin" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>Admin</NavLink> : null}
         </nav>
 
-        <button
-          type="button"
-          className="secondary-btn"
-          onClick={() => void signOut()}
-          style={{ position: 'absolute', left: 24, right: 24, bottom: 24 }}
-        >
+        <button type="button" className="secondary-btn" onClick={() => void signOut()} style={{ position: 'absolute', left: 24, right: 24, bottom: 24 }}>
           Déconnexion
         </button>
       </aside>
