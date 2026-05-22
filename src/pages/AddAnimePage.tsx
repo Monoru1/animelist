@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { ChangeEvent, FormEvent } from 'react'
 import { supabase } from '@/services/supabaseClient'
 
@@ -21,17 +21,9 @@ function cleanAnimeQuery(value: string) {
 
     const parts = url.pathname.split('/').filter(Boolean)
     const last = parts.at(-1) ?? raw
-    return decodeURIComponent(last)
-      .replace(/[-_]+/g, ' ')
-      .replace(/saison\s*\d+/gi, '')
-      .replace(/season\s*\d+/gi, '')
-      .trim()
+    return decodeURIComponent(last).replace(/[-_]+/g, ' ').replace(/saison\s*\d+/gi, '').replace(/season\s*\d+/gi, '').trim()
   } catch {
-    return raw
-      .replace(/[-_]+/g, ' ')
-      .replace(/saison\s*\d+/gi, '')
-      .replace(/season\s*\d+/gi, '')
-      .trim()
+    return raw.replace(/[-_]+/g, ' ').replace(/saison\s*\d+/gi, '').replace(/season\s*\d+/gi, '').trim()
   }
 }
 
@@ -53,8 +45,8 @@ export function AddAnimePage() {
     if (file) setImageUrl('')
   }
 
-  async function importMetadata() {
-    const query = cleanAnimeQuery(title) || cleanAnimeQuery(watchUrl)
+  async function importMetadata(queryOverride?: string) {
+    const query = cleanAnimeQuery(queryOverride ?? title) || cleanAnimeQuery(watchUrl)
     if (!query) {
       setErrorMessage('Mets le titre de l’anime pour importer automatiquement les informations.')
       return
@@ -85,17 +77,25 @@ export function AddAnimePage() {
     }
   }
 
+  useEffect(() => {
+    const query = cleanAnimeQuery(title)
+    if (query.length < 3 || description || genre || imageUrl) return
+
+    const timeout = window.setTimeout(() => {
+      void importMetadata(query)
+    }, 900)
+
+    return () => window.clearTimeout(timeout)
+  }, [title])
+
   async function resolvePosterUrl(userId: string): Promise<string> {
     if (!posterFile) return imageUrl
 
-    if (!posterFile.type.startsWith('image/')) {
-      throw new Error('Le fichier doit être une image.')
-    }
+    if (!posterFile.type.startsWith('image/')) throw new Error('Le fichier doit être une image.')
 
     const extension = posterFile.name.split('.').pop() ?? 'webp'
     const path = `${userId}/${crypto.randomUUID()}.${extension}`
     const { error } = await supabase.storage.from('anime-posters').upload(path, posterFile)
-
     if (error) throw error
 
     const { data } = supabase.storage.from('anime-posters').getPublicUrl(path)
@@ -148,14 +148,14 @@ export function AddAnimePage() {
       <div className="surface-panel">
         <p style={{ color: 'var(--color-accent-hi)', fontWeight: 900, margin: 0 }}>IMPORT ANIME</p>
         <h1>Ajouter un animé</h1>
-        <p style={{ color: 'var(--color-text-muted)' }}>Colle le titre et le lien de visionnage. Les infos se remplissent automatiquement.</p>
+        <p style={{ color: 'var(--color-text-muted)' }}>Mets le titre, colle le lien de visionnage, puis valide. Les infos se remplissent automatiquement.</p>
 
         <form onSubmit={handleSubmit} style={{ display: 'grid', gap: 16 }}>
           <input className="input-field" placeholder="Titre de l’anime" value={title} onChange={(event) => setTitle(event.target.value)} required />
           <input className="input-field" placeholder="Lien de visionnage" value={watchUrl} onChange={(event) => setWatchUrl(event.target.value)} required />
 
           <button className="secondary-btn" type="button" onClick={() => void importMetadata()} disabled={metadataLoading}>
-            {metadataLoading ? 'Import...' : 'Remplir automatiquement'}
+            {metadataLoading ? 'Recherche...' : 'Forcer la recherche des informations'}
           </button>
 
           <textarea className="input-field" placeholder="Description / synopsis" value={description} onChange={(event) => setDescription(event.target.value)} rows={4} />
@@ -163,7 +163,7 @@ export function AddAnimePage() {
 
           <div className="surface-panel" style={{ padding: 16 }}>
             <strong>Affiche</strong>
-            <p style={{ color: 'var(--color-text-muted)', marginTop: 6 }}>Automatique si disponible. Sinon ajoute une image depuis ton appareil ou une URL.</p>
+            <p style={{ color: 'var(--color-text-muted)', marginTop: 6 }}>Automatique si disponible. Sinon ajoute une image manuellement.</p>
             <input type="file" accept="image/*" onChange={handleFileChange} />
             <input className="input-field" placeholder="URL image optionnelle" value={imageUrl} onChange={(event) => setImageUrl(event.target.value)} disabled={Boolean(posterFile)} style={{ marginTop: 12 }} />
           </div>
