@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
+import { Navigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/services/supabaseClient'
 
@@ -37,14 +38,35 @@ async function fetchAdminData() {
 
 export function AdminPage() {
   const queryClient = useQueryClient()
+  const [isCheckingAdmin, setIsCheckingAdmin] = useState(true)
+  const [isAdmin, setIsAdmin] = useState(false)
   const [targetAnime, setTargetAnime] = useState<AnimeRow | null>(null)
   const [reason, setReason] = useState('')
   const [message, setMessage] = useState('')
   const [loadingAction, setLoadingAction] = useState(false)
 
+  useEffect(() => {
+    async function checkAdmin() {
+      const { data: authData } = await supabase.auth.getUser()
+      const userId = authData.user?.id
+
+      if (!userId) {
+        setIsCheckingAdmin(false)
+        return
+      }
+
+      const { data } = await supabase.from('profiles').select('role').eq('id', userId).single()
+      setIsAdmin(data?.role === 'admin')
+      setIsCheckingAdmin(false)
+    }
+
+    void checkAdmin()
+  }, [])
+
   const { data, isLoading, error } = useQuery({
     queryKey: ['admin-data'],
     queryFn: fetchAdminData,
+    enabled: isAdmin,
   })
 
   async function deleteAnime(event: FormEvent<HTMLFormElement>) {
@@ -66,23 +88,20 @@ export function AdminPage() {
       const { error: deleteError } = await supabase.from('animes').delete().eq('id', targetAnime.id)
       if (deleteError) throw deleteError
 
-      const notificationPayload = {
+      await supabase.from('notifications').insert({
         user_id: targetAnime.user_id,
         title: 'Animé supprimé',
         message: `Ton animé « ${targetAnime.title} » a été supprimé par la modération.`,
         reason: reason.trim(),
-      }
+      })
 
-      const logPayload = {
+      await supabase.from('moderation_logs').insert({
         admin_id: adminId,
         target_user_id: targetAnime.user_id,
         target_anime_id: targetAnime.id,
         action: 'delete_anime',
         reason: reason.trim(),
-      }
-
-      await supabase.from('notifications').insert(notificationPayload)
-      await supabase.from('moderation_logs').insert(logPayload)
+      })
 
       setReason('')
       setTargetAnime(null)
@@ -96,25 +115,32 @@ export function AdminPage() {
     }
   }
 
+  if (isCheckingAdmin) return <p>Vérification des accès...</p>
+  if (!isAdmin) return <Navigate to="/library" replace />
+
   return (
     <section>
-      <h1>Administration</h1>
-      <p>Gestion interne depuis le site. Aucun besoin d’aller dans Supabase.</p>
+      <div className="surface-panel" style={{ marginBottom: 24 }}>
+        <p style={{ color: 'var(--color-accent-hi)', fontWeight: 900, margin: 0 }}>ADMINISTRATION</p>
+        <h1>Centre de contrôle</h1>
+        <p style={{ color: 'var(--color-text-muted)' }}>Gestion interne, modération, utilisateurs et contenus communautaires.</p>
+      </div>
+
       {isLoading ? <p>Chargement admin...</p> : null}
       {error ? <p>Impossible de charger les données admin.</p> : null}
       {message ? <p>{message}</p> : null}
 
-      <div style={{ display: 'grid', gap: 24, gridTemplateColumns: '1fr 1fr' }}>
+      <div style={{ display: 'grid', gap: 24, gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))' }}>
         <section>
           <h2>Animés ajoutés</h2>
           <div style={{ display: 'grid', gap: 12 }}>
             {data?.animes.map((anime) => (
-              <article key={anime.id} style={{ display: 'flex', gap: 12, border: '1px solid var(--color-border)', padding: 12, borderRadius: 12 }}>
+              <article key={anime.id} className="surface-panel" style={{ display: 'flex', gap: 12, padding: 12 }}>
                 <img src={anime.poster_url} alt={anime.title} style={{ width: 70, height: 100, objectFit: 'cover', borderRadius: 8 }} />
-                <div>
+                <div style={{ overflow: 'hidden' }}>
                   <strong>{anime.title}</strong>
-                  <p>{anime.watch_url}</p>
-                  <button type="button" onClick={() => setTargetAnime(anime)}>Supprimer</button>
+                  <p style={{ color: 'var(--color-text-muted)', overflowWrap: 'anywhere' }}>{anime.watch_url}</p>
+                  <button className="secondary-btn" type="button" onClick={() => setTargetAnime(anime)}>Supprimer</button>
                 </div>
               </article>
             ))}
@@ -125,7 +151,7 @@ export function AdminPage() {
           <h2>Utilisateurs</h2>
           <div style={{ display: 'grid', gap: 12 }}>
             {data?.profiles.map((profile) => (
-              <article key={profile.id} style={{ border: '1px solid var(--color-border)', padding: 12, borderRadius: 12 }}>
+              <article key={profile.id} className="surface-panel" style={{ padding: 14 }}>
                 <strong>{profile.username}</strong>
                 <p>{profile.email}</p>
                 <p>Role: {profile.role}</p>
@@ -136,11 +162,13 @@ export function AdminPage() {
       </div>
 
       {targetAnime ? (
-        <form onSubmit={deleteAnime} style={{ marginTop: 24, border: '1px solid var(--color-border)', padding: 16, borderRadius: 16 }}>
+        <form onSubmit={deleteAnime} className="surface-panel" style={{ marginTop: 24 }}>
           <h2>Supprimer « {targetAnime.title} »</h2>
-          <textarea value={reason} onChange={(event) => setReason(event.target.value)} placeholder="Raison obligatoire" required style={{ width: '100%', minHeight: 100 }} />
-          <button type="submit" disabled={loadingAction}>{loadingAction ? 'Suppression...' : 'Confirmer la suppression'}</button>
-          <button type="button" onClick={() => setTargetAnime(null)}>Annuler</button>
+          <textarea className="input-field" value={reason} onChange={(event) => setReason(event.target.value)} placeholder="Raison obligatoire" required rows={4} />
+          <div style={{ display: 'flex', gap: 12, marginTop: 12, flexWrap: 'wrap' }}>
+            <button className="primary-btn" type="submit" disabled={loadingAction}>{loadingAction ? 'Suppression...' : 'Confirmer la suppression'}</button>
+            <button className="secondary-btn" type="button" onClick={() => setTargetAnime(null)}>Annuler</button>
+          </div>
         </form>
       ) : null}
     </section>
