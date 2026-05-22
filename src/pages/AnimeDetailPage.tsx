@@ -19,6 +19,16 @@ function getAuthorName(profiles: AnimeDetail['profiles']) {
   return profile?.username ?? 'Utilisateur'
 }
 
+function detectBadges(url: string) {
+  const value = url.toLowerCase()
+  const badges = ['HD']
+  if (value.includes('vostfr')) badges.push('VOSTFR')
+  if (value.includes('vf')) badges.push('VF')
+  if (value.includes('anime-sama')) badges.push('Anime-Sama')
+  if (value.includes('neko')) badges.push('Neko')
+  return badges
+}
+
 export function AnimeDetailPage() {
   const { animeId } = useParams()
   const [anime, setAnime] = useState<AnimeDetail | null>(null)
@@ -39,23 +49,13 @@ export function AnimeDetailPage() {
         .eq('id', animeId)
         .single()
 
-      setAnime((data ?? null) as AnimeDetail | null)
+      setAnime((data ?? null) as unknown as AnimeDetail | null)
 
-      const { count } = await supabase
-        .from('favorites')
-        .select('id', { count: 'exact', head: true })
-        .eq('anime_id', animeId)
-
+      const { count } = await supabase.from('favorites').select('id', { count: 'exact', head: true }).eq('anime_id', animeId)
       setFavoriteCount(count ?? 0)
 
       if (userId) {
-        const { data: favorite } = await supabase
-          .from('favorites')
-          .select('id')
-          .eq('anime_id', animeId)
-          .eq('user_id', userId)
-          .maybeSingle()
-
+        const { data: favorite } = await supabase.from('favorites').select('id').eq('anime_id', animeId).eq('user_id', userId).maybeSingle()
         setIsFavorite(Boolean(favorite))
       }
     }
@@ -102,14 +102,14 @@ export function AnimeDetailPage() {
   return (
     <section>
       <div
-        className="surface-panel"
+        className="surface-panel anime-hero-detail"
         style={{
-          minHeight: 520,
+          minHeight: 560,
           display: 'grid',
           gridTemplateColumns: 'minmax(180px, 280px) 1fr',
           gap: 28,
           alignItems: 'end',
-          backgroundImage: `linear-gradient(90deg, rgba(10,10,11,.96), rgba(10,10,11,.7)), url(${anime.poster_url})`,
+          backgroundImage: `linear-gradient(90deg, rgba(10,10,11,.97), rgba(10,10,11,.72)), url(${anime.poster_url})`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           overflow: 'hidden',
@@ -119,16 +119,19 @@ export function AnimeDetailPage() {
         <div>
           <p style={{ color: 'var(--color-accent-hi)', fontWeight: 900 }}>AJOUTÉ PAR {getAuthorName(anime.profiles).toUpperCase()}</p>
           <h1 style={{ fontSize: 'clamp(2.2rem, 6vw, 5rem)', lineHeight: 1, margin: '10px 0' }}>{anime.title}</h1>
+
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '14px 0' }}>
+            {detectBadges(anime.watch_url).map((badge) => (
+              <span key={badge} style={{ padding: '7px 10px', borderRadius: 999, background: 'rgba(255,255,255,.1)', border: '1px solid var(--color-border)', fontWeight: 800, fontSize: 12 }}>{badge}</span>
+            ))}
+          </div>
+
           {anime.genre ? <p style={{ color: 'var(--color-text-muted)', fontWeight: 700 }}>{anime.genre}</p> : null}
           {anime.description ? <p style={{ maxWidth: 860, lineHeight: 1.7, color: 'var(--color-text-muted)', fontSize: 17 }}>{anime.description}</p> : null}
 
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 22 }}>
-            <a className="primary-btn" href={anime.watch_url} target="_blank" rel="noreferrer" onClick={() => void markWatching()} style={{ textDecoration: 'none' }}>
-              Regarder maintenant
-            </a>
-            <button className="secondary-btn" type="button" onClick={() => void toggleFavorite()}>
-              {isFavorite ? '❤️ Favori' : '🤍 Ajouter aux favoris'} · {favoriteCount}
-            </button>
+            <a className="primary-btn" href={anime.watch_url} target="_blank" rel="noreferrer" onClick={() => void markWatching()} style={{ textDecoration: 'none' }}>Regarder maintenant</a>
+            <button className="secondary-btn" type="button" onClick={() => void toggleFavorite()}>{isFavorite ? '❤️ Favori' : '🤍 Ajouter aux favoris'} · {favoriteCount}</button>
             <Link className="secondary-btn" to="/library" style={{ textDecoration: 'none' }}>Retour</Link>
           </div>
           {message ? <p>{message}</p> : null}
