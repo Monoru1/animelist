@@ -10,6 +10,7 @@ import { MyPlaylistPage } from '@/pages/MyPlaylistPage'
 import { NotificationsPage } from '@/pages/NotificationsPage'
 import { ProfilePage } from '@/pages/ProfilePage'
 import { RegisterPage } from '@/pages/RegisterPage'
+import { WatchHistoryPage } from '@/pages/WatchHistoryPage'
 
 export function AppRouter() {
   return (
@@ -21,6 +22,7 @@ export function AppRouter() {
           <Route index element={<Navigate to="/library" replace />} />
           <Route path="library" element={<LibraryPage />} />
           <Route path="anime/:animeId" element={<AnimeDetailPage />} />
+          <Route path="history" element={<WatchHistoryPage />} />
           <Route path="add" element={<AddAnimePage />} />
           <Route path="my-playlist" element={<MyPlaylistPage />} />
           <Route path="notifications" element={<NotificationsPage />} />
