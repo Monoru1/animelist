@@ -3,6 +3,7 @@ import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { AddAnimePage } from '@/pages/AddAnimePage'
 import { AdminPage } from '@/pages/AdminPage'
+import { AnimeDetailPage } from '@/pages/AnimeDetailPage'
 import { LibraryPage } from '@/pages/LibraryPage'
 import { LoginPage } from '@/pages/LoginPage'
 import { MyPlaylistPage } from '@/pages/MyPlaylistPage'
@@ -19,6 +20,7 @@ export function AppRouter() {
         <Route path="/" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
           <Route index element={<Navigate to="/library" replace />} />
           <Route path="library" element={<LibraryPage />} />
+          <Route path="anime/:animeId" element={<AnimeDetailPage />} />
           <Route path="add" element={<AddAnimePage />} />
           <Route path="my-playlist" element={<MyPlaylistPage />} />
           <Route path="notifications" element={<NotificationsPage />} />
