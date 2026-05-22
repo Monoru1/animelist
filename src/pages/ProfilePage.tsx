@@ -50,6 +50,8 @@ export function ProfilePage() {
     setMessage('Profil mis à jour.')
   }
 
+  const previewAvatar = avatarUrl.trim() || 'https://api.dicebear.com/9.x/bottts-neutral/svg?seed=animelist'
+
   return (
     <main>
       <div className="surface-panel" style={{ maxWidth: 760 }}>
@@ -59,8 +61,11 @@ export function ProfilePage() {
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 18, margin: '24px 0', flexWrap: 'wrap' }}>
           <img
-            src={avatarUrl || 'https://api.dicebear.com/9.x/bottts-neutral/svg?seed=animelist'}
+            src={previewAvatar}
             alt="Avatar"
+            onError={(event) => {
+              event.currentTarget.src = 'https://api.dicebear.com/9.x/bottts-neutral/svg?seed=animelist'
+            }}
             style={{ width: 96, height: 96, borderRadius: 24, objectFit: 'cover', background: 'var(--color-surface-hi)' }}
           />
           <div>
@@ -73,7 +78,7 @@ export function ProfilePage() {
           <label>Pseudo</label>
           <input className="input-field" value={username} onChange={(event) => setUsername(event.target.value)} />
 
-          <label>URL avatar</label>
+          <label>URL avatar (optionnel)</label>
           <input className="input-field" value={avatarUrl} onChange={(event) => setAvatarUrl(event.target.value)} placeholder="https://..." />
 
           <button className="primary-btn" type="button" onClick={() => void saveProfile()}>
