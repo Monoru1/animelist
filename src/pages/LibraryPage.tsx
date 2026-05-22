@@ -22,6 +22,27 @@ function getAuthorName(profiles: LibraryAnime['profiles']) {
   return profile?.username ?? 'Utilisateur'
 }
 
+function AnimeTile({ anime, compact = false }: { anime: LibraryAnime; compact?: boolean }) {
+  return (
+    <article className="anime-card anime-tile" style={{ minWidth: compact ? 180 : 220 }}>
+      <Link to={`/anime/${anime.id}`} style={{ textDecoration: 'none' }}>
+        <img src={anime.poster_url} alt={anime.title} />
+      </Link>
+      <div style={{ padding: 14 }}>
+        <p style={{ margin: '0 0 8px', color: 'var(--color-text-muted)', fontSize: 12 }}>
+          Ajouté par : <strong style={{ color: 'var(--color-text)' }}>{getAuthorName(anime.profiles)}</strong>
+        </p>
+        <h2 style={{ fontSize: 18, margin: '0 0 8px' }}>{anime.title}</h2>
+        {anime.genre ? <p style={{ color: 'var(--color-text-muted)', minHeight: 38, fontSize: 13 }}>{anime.genre}</p> : null}
+        <div style={{ display: 'grid', gap: 8 }}>
+          <Link className="primary-btn" to={`/anime/${anime.id}`} style={{ display: 'block', textAlign: 'center', textDecoration: 'none' }}>Voir la fiche</Link>
+          {!compact ? <a className="secondary-btn" href={anime.watch_url} target="_blank" rel="noreferrer" style={{ display: 'block', textAlign: 'center', textDecoration: 'none' }}>Regarder</a> : null}
+        </div>
+      </div>
+    </article>
+  )
+}
+
 async function fetchAnimes(): Promise<LibraryAnime[]> {
   const { data, error } = await supabase
     .from('animes')
@@ -45,6 +66,7 @@ export function LibraryPage() {
   const featuredAnime = filteredAnimes[0]
   const recentAnimes = filteredAnimes.slice(0, 12)
   const popularAnimes = [...filteredAnimes].sort((a, b) => a.title.localeCompare(b.title)).slice(0, 12)
+  const actionAnimes = filteredAnimes.filter((anime) => (anime.genre ?? '').toLowerCase().includes('action')).slice(0, 12)
 
   return (
     <section>
@@ -52,10 +74,10 @@ export function LibraryPage() {
         className="surface-panel"
         style={{
           marginBottom: 28,
-          minHeight: 380,
+          minHeight: 420,
           display: 'grid',
           alignContent: 'end',
-          backgroundImage: featuredAnime ? `linear-gradient(90deg, rgba(10,10,11,.96), rgba(10,10,11,.62)), url(${featuredAnime.poster_url})` : undefined,
+          backgroundImage: featuredAnime ? `linear-gradient(90deg, rgba(10,10,11,.97), rgba(10,10,11,.62)), url(${featuredAnime.poster_url})` : undefined,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
         }}
@@ -78,42 +100,23 @@ export function LibraryPage() {
       {!isLoading && filteredAnimes.length === 0 ? <p>Aucun animé trouvé.</p> : null}
 
       <h2>Ajouts récents</h2>
-      <div className="card-grid" style={{ marginBottom: 34 }}>
-        {recentAnimes.map((anime) => (
-          <article key={anime.id} className="anime-card">
-            <Link to={`/anime/${anime.id}`} style={{ textDecoration: 'none' }}>
-              <img src={anime.poster_url} alt={anime.title} />
-            </Link>
-            <div style={{ padding: 16 }}>
-              <p style={{ margin: '0 0 8px', color: 'var(--color-text-muted)', fontSize: 13 }}>
-                Ajouté par : <strong style={{ color: 'var(--color-text)' }}>{getAuthorName(anime.profiles)}</strong>
-              </p>
-              <h2 style={{ fontSize: 20, margin: '0 0 8px' }}>{anime.title}</h2>
-              {anime.genre ? <p style={{ color: 'var(--color-text-muted)', minHeight: 44 }}>{anime.genre}</p> : null}
-              <div style={{ display: 'grid', gap: 10 }}>
-                <Link className="primary-btn" to={`/anime/${anime.id}`} style={{ display: 'block', textAlign: 'center', textDecoration: 'none' }}>Voir la fiche</Link>
-                <a className="secondary-btn" href={anime.watch_url} target="_blank" rel="noreferrer" style={{ display: 'block', textAlign: 'center', textDecoration: 'none' }}>Regarder</a>
-              </div>
-            </div>
-          </article>
-        ))}
+      <div className="anime-row" style={{ marginBottom: 34 }}>
+        {recentAnimes.map((anime) => <AnimeTile key={anime.id} anime={anime} />)}
       </div>
 
       <h2>Populaires communauté</h2>
-      <div className="card-grid">
-        {popularAnimes.map((anime) => (
-          <article key={anime.id} className="anime-card">
-            <Link to={`/anime/${anime.id}`} style={{ textDecoration: 'none' }}>
-              <img src={anime.poster_url} alt={anime.title} />
-            </Link>
-            <div style={{ padding: 16 }}>
-              <h2 style={{ fontSize: 20, margin: '0 0 8px' }}>{anime.title}</h2>
-              {anime.genre ? <p style={{ color: 'var(--color-text-muted)', minHeight: 44 }}>{anime.genre}</p> : null}
-              <Link className="primary-btn" to={`/anime/${anime.id}`} style={{ display: 'block', textAlign: 'center', textDecoration: 'none', marginTop: 14 }}>Découvrir</Link>
-            </div>
-          </article>
-        ))}
+      <div className="anime-row" style={{ marginBottom: 34 }}>
+        {popularAnimes.map((anime) => <AnimeTile key={anime.id} anime={anime} compact />)}
       </div>
+
+      {actionAnimes.length > 0 ? (
+        <>
+          <h2>Action</h2>
+          <div className="anime-row">
+            {actionAnimes.map((anime) => <AnimeTile key={anime.id} anime={anime} compact />)}
+          </div>
+        </>
+      ) : null}
     </section>
   )
 }
