@@ -37,6 +37,10 @@ export function AppLayout() {
             Bibliothèque
           </NavLink>
 
+          <NavLink to="/history" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
+            Continuer
+          </NavLink>
+
           <NavLink to="/add" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
             Ajouter
           </NavLink>
