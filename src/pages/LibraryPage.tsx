@@ -2,6 +2,8 @@ import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/services/supabaseClient'
 
+type AuthorProfile = { username: string | null; avatar_url: string | null }
+
 type LibraryAnime = {
   id: string
   user_id: string
@@ -11,7 +13,12 @@ type LibraryAnime = {
   poster_url: string
   watch_url: string
   created_at: string
-  profiles?: { username: string | null; avatar_url: string | null } | null
+  profiles?: AuthorProfile | AuthorProfile[] | null
+}
+
+function getAuthorName(profiles: LibraryAnime['profiles']) {
+  const profile = Array.isArray(profiles) ? profiles[0] : profiles
+  return profile?.username ?? 'Utilisateur'
 }
 
 async function fetchAnimes(): Promise<LibraryAnime[]> {
@@ -21,7 +28,7 @@ async function fetchAnimes(): Promise<LibraryAnime[]> {
     .order('created_at', { ascending: false })
 
   if (error) throw error
-  return data ?? []
+  return (data ?? []) as LibraryAnime[]
 }
 
 export function LibraryPage() {
@@ -53,7 +60,7 @@ export function LibraryPage() {
             <img src={anime.poster_url} alt={anime.title} />
             <div style={{ padding: 16 }}>
               <p style={{ margin: '0 0 8px', color: 'var(--color-text-muted)', fontSize: 13 }}>
-                Ajouté par : <strong style={{ color: 'var(--color-text)' }}>{anime.profiles?.username ?? 'Utilisateur'}</strong>
+                Ajouté par : <strong style={{ color: 'var(--color-text)' }}>{getAuthorName(anime.profiles)}</strong>
               </p>
               <h2 style={{ fontSize: 20, margin: '0 0 8px' }}>{anime.title}</h2>
               {anime.genre ? <p style={{ color: 'var(--color-text-muted)', minHeight: 44 }}>{anime.genre}</p> : null}
