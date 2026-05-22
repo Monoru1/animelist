@@ -100,41 +100,32 @@ export function AnimeDetailPage() {
   if (!anime) return <p>Chargement...</p>
 
   return (
-    <section>
-      <div
-        className="surface-panel anime-hero-detail"
-        style={{
-          minHeight: 560,
-          display: 'grid',
-          gridTemplateColumns: 'minmax(180px, 280px) 1fr',
-          gap: 28,
-          alignItems: 'end',
-          backgroundImage: `linear-gradient(90deg, rgba(10,10,11,.97), rgba(10,10,11,.72)), url(${anime.poster_url})`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          overflow: 'hidden',
-        }}
-      >
-        <img src={anime.poster_url} alt={anime.title} style={{ width: '100%', borderRadius: 24, boxShadow: '0 30px 80px rgba(0,0,0,.45)' }} />
-        <div>
-          <p style={{ color: 'var(--color-accent-hi)', fontWeight: 900 }}>AJOUTÉ PAR {getAuthorName(anime.profiles).toUpperCase()}</p>
-          <h1 style={{ fontSize: 'clamp(2.2rem, 6vw, 5rem)', lineHeight: 1, margin: '10px 0' }}>{anime.title}</h1>
+    <section className="anime-detail-page">
+      <div className="anime-detail-backdrop" style={{ backgroundImage: `url(${anime.poster_url})` }} />
 
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '14px 0' }}>
-            {detectBadges(anime.watch_url).map((badge) => (
-              <span key={badge} style={{ padding: '7px 10px', borderRadius: 999, background: 'rgba(255,255,255,.1)', border: '1px solid var(--color-border)', fontWeight: 800, fontSize: 12 }}>{badge}</span>
-            ))}
+      <div className="surface-panel anime-detail-card">
+        <div className="anime-detail-poster-wrap">
+          <img className="anime-detail-poster" src={anime.poster_url} alt={anime.title} />
+        </div>
+
+        <div className="anime-detail-content">
+          <p className="eyebrow">AJOUTÉ PAR {getAuthorName(anime.profiles).toUpperCase()}</p>
+          <h1>{anime.title}</h1>
+
+          <div className="badge-row">
+            {detectBadges(anime.watch_url).map((badge) => <span key={badge} className="anime-badge">{badge}</span>)}
           </div>
 
-          {anime.genre ? <p style={{ color: 'var(--color-text-muted)', fontWeight: 700 }}>{anime.genre}</p> : null}
-          {anime.description ? <p style={{ maxWidth: 860, lineHeight: 1.7, color: 'var(--color-text-muted)', fontSize: 17 }}>{anime.description}</p> : null}
+          {anime.genre ? <p className="anime-detail-genre">{anime.genre}</p> : null}
+          {anime.description ? <p className="anime-detail-description">{anime.description}</p> : null}
 
-          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 22 }}>
-            <a className="primary-btn" href={anime.watch_url} target="_blank" rel="noreferrer" onClick={() => void markWatching()} style={{ textDecoration: 'none' }}>Regarder maintenant</a>
+          <div className="anime-detail-actions">
+            <a className="primary-btn" href={anime.watch_url} target="_blank" rel="noreferrer" onClick={() => void markWatching()}>Regarder maintenant</a>
             <button className="secondary-btn" type="button" onClick={() => void toggleFavorite()}>{isFavorite ? '❤️ Favori' : '🤍 Ajouter aux favoris'} · {favoriteCount}</button>
-            <Link className="secondary-btn" to="/library" style={{ textDecoration: 'none' }}>Retour</Link>
+            <Link className="secondary-btn" to="/library">Retour</Link>
           </div>
-          {message ? <p>{message}</p> : null}
+
+          {message ? <p className="anime-detail-message">{message}</p> : null}
         </div>
       </div>
     </section>
