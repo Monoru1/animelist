@@ -51,7 +51,7 @@ export function AddAnimePage() {
 
     try {
       const response = await fetch(`https://api.jikan.moe/v4/anime?q=${encodeURIComponent(query)}&limit=1`)
-      if (!response.ok) throw new Error('Impossible de récupérer les métadonnées.')
+      if (!response.ok) throw new Error('Impossible de récupérer les informations.')
 
       const json = await response.json() as { data?: JikanAnime[] }
       const anime = json.data?.[0]
@@ -62,7 +62,7 @@ export function AddAnimePage() {
       setGenre((anime.genres ?? []).map((item) => item.name).join(', '))
       setImageUrl(anime.images?.jpg?.large_image_url || anime.images?.jpg?.image_url || imageUrl)
       setPosterFile(null)
-      setSuccessMessage('Métadonnées importées. Vérifie puis valide.')
+      setSuccessMessage('Informations importées. Vérifie puis valide.')
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'Import impossible.')
     } finally {
@@ -70,7 +70,7 @@ export function AddAnimePage() {
     }
   }
 
-  async function uploadPoster(userId: string): Promise<string> {
+  async function resolvePosterUrl(userId: string): Promise<string> {
     if (!posterFile) return imageUrl
 
     if (!posterFile.type.startsWith('image/')) {
@@ -99,9 +99,9 @@ export function AddAnimePage() {
 
       if (!user) throw new Error('Tu dois être connecté.')
       if (!title.trim() || !watchUrl.trim()) throw new Error('Titre et lien de visionnage obligatoires.')
-      if (!posterFile && !imageUrl.trim()) throw new Error('Ajoute une affiche via fichier ou URL.')
+      if (!posterFile && !imageUrl.trim()) throw new Error('Ajoute une affiche via fichier, URL ou import automatique.')
 
-      const finalPosterUrl = await uploadPoster(user.id)
+      const finalPosterUrl = await resolvePosterUrl(user.id)
       const animePayload = {
         user_id: user.id,
         title: title.trim(),
@@ -133,24 +133,24 @@ export function AddAnimePage() {
       <div className="surface-panel">
         <p style={{ color: 'var(--color-accent-hi)', fontWeight: 900, margin: 0 }}>IMPORT ANIME</p>
         <h1>Ajouter un animé</h1>
-        <p style={{ color: 'var(--color-text-muted)' }}>Colle un lien ou un titre, importe automatiquement les infos, puis valide l’ajout.</p>
+        <p style={{ color: 'var(--color-text-muted)' }}>Colle un lien ou un titre, importe les infos automatiquement, puis valide l’ajout.</p>
 
         <form onSubmit={handleSubmit} style={{ display: 'grid', gap: 16 }}>
           <input className="input-field" placeholder="Titre ou recherche anime" value={title} onChange={(event) => setTitle(event.target.value)} required />
           <input className="input-field" placeholder="Lien de visionnage" value={watchUrl} onChange={(event) => setWatchUrl(event.target.value)} required />
 
           <button className="secondary-btn" type="button" onClick={() => void importMetadata()} disabled={metadataLoading}>
-            {metadataLoading ? 'Import...' : 'Importer automatiquement titre / genre / affiche'}
+            {metadataLoading ? 'Import...' : 'Importer automatiquement les informations'}
           </button>
 
           <textarea className="input-field" placeholder="Description / synopsis" value={description} onChange={(event) => setDescription(event.target.value)} rows={4} />
           <input className="input-field" placeholder="Genre" value={genre} onChange={(event) => setGenre(event.target.value)} />
 
-          <label>Uploader une affiche depuis ton appareil</label>
+          <label>Affiche depuis ton appareil</label>
           <input type="file" accept="image/*" onChange={handleFileChange} />
 
-          <label>Ou mettre l’URL de l’affiche</label>
-          <input className="input-field" placeholder="URL image" value={imageUrl} onChange={(event) => setImageUrl(event.target.value)} disabled={Boolean(posterFile)} />
+          <label>Ou URL de l’affiche</label>
+          <input className="input-field" placeholder="https://image..." value={imageUrl} onChange={(event) => setImageUrl(event.target.value)} disabled={Boolean(posterFile)} />
 
           {(posterFile || imageUrl) ? (
             <div>
