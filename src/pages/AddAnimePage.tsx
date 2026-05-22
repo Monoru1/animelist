@@ -10,14 +10,28 @@ type JikanAnime = {
   images?: { jpg?: { large_image_url?: string; image_url?: string } }
 }
 
-function extractAnimeQuery(value: string) {
+function cleanAnimeQuery(value: string) {
+  const raw = value.trim()
+  if (!raw) return ''
+
   try {
-    const url = new URL(value)
+    const url = new URL(raw)
+    const newsId = url.searchParams.get('newsid')
+    if (newsId) return ''
+
     const parts = url.pathname.split('/').filter(Boolean)
-    const last = parts[parts.length - 1] ?? value
-    return decodeURIComponent(last.replaceAll('-', ' ')).trim()
+    const last = parts.at(-1) ?? raw
+    return decodeURIComponent(last)
+      .replace(/[-_]+/g, ' ')
+      .replace(/saison\s*\d+/gi, '')
+      .replace(/season\s*\d+/gi, '')
+      .trim()
   } catch {
-    return value.trim()
+    return raw
+      .replace(/[-_]+/g, ' ')
+      .replace(/saison\s*\d+/gi, '')
+      .replace(/season\s*\d+/gi, '')
+      .trim()
   }
 }
 
@@ -40,14 +54,15 @@ export function AddAnimePage() {
   }
 
   async function importMetadata() {
-    const query = extractAnimeQuery(title || watchUrl)
+    const query = cleanAnimeQuery(title) || cleanAnimeQuery(watchUrl)
     if (!query) {
-      setErrorMessage('Mets un titre ou un lien avant l’import automatique.')
+      setErrorMessage('Mets le titre de l’anime pour importer automatiquement les informations.')
       return
     }
 
     setMetadataLoading(true)
     setErrorMessage('')
+    setSuccessMessage('')
 
     try {
       const response = await fetch(`https://api.jikan.moe/v4/anime?q=${encodeURIComponent(query)}&limit=1`)
@@ -133,24 +148,25 @@ export function AddAnimePage() {
       <div className="surface-panel">
         <p style={{ color: 'var(--color-accent-hi)', fontWeight: 900, margin: 0 }}>IMPORT ANIME</p>
         <h1>Ajouter un animé</h1>
-        <p style={{ color: 'var(--color-text-muted)' }}>Colle un lien ou un titre, importe les infos automatiquement, puis valide l’ajout.</p>
+        <p style={{ color: 'var(--color-text-muted)' }}>Colle le titre et le lien de visionnage. Les infos se remplissent automatiquement.</p>
 
         <form onSubmit={handleSubmit} style={{ display: 'grid', gap: 16 }}>
-          <input className="input-field" placeholder="Titre ou recherche anime" value={title} onChange={(event) => setTitle(event.target.value)} required />
+          <input className="input-field" placeholder="Titre de l’anime" value={title} onChange={(event) => setTitle(event.target.value)} required />
           <input className="input-field" placeholder="Lien de visionnage" value={watchUrl} onChange={(event) => setWatchUrl(event.target.value)} required />
 
           <button className="secondary-btn" type="button" onClick={() => void importMetadata()} disabled={metadataLoading}>
-            {metadataLoading ? 'Import...' : 'Importer automatiquement les informations'}
+            {metadataLoading ? 'Import...' : 'Remplir automatiquement'}
           </button>
 
           <textarea className="input-field" placeholder="Description / synopsis" value={description} onChange={(event) => setDescription(event.target.value)} rows={4} />
           <input className="input-field" placeholder="Genre" value={genre} onChange={(event) => setGenre(event.target.value)} />
 
-          <label>Affiche depuis ton appareil</label>
-          <input type="file" accept="image/*" onChange={handleFileChange} />
-
-          <label>Ou URL de l’affiche</label>
-          <input className="input-field" placeholder="https://image..." value={imageUrl} onChange={(event) => setImageUrl(event.target.value)} disabled={Boolean(posterFile)} />
+          <div className="surface-panel" style={{ padding: 16 }}>
+            <strong>Affiche</strong>
+            <p style={{ color: 'var(--color-text-muted)', marginTop: 6 }}>Automatique si disponible. Sinon ajoute une image depuis ton appareil ou une URL.</p>
+            <input type="file" accept="image/*" onChange={handleFileChange} />
+            <input className="input-field" placeholder="URL image optionnelle" value={imageUrl} onChange={(event) => setImageUrl(event.target.value)} disabled={Boolean(posterFile)} style={{ marginTop: 12 }} />
+          </div>
 
           {(posterFile || imageUrl) ? (
             <div>
