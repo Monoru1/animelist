@@ -30,6 +30,10 @@ export function AppLayout() {
             Ma playlist
           </NavLink>
 
+          <NavLink to="/profile" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
+            Profil
+          </NavLink>
+
           <NavLink to="/notifications" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
             Notifications
           </NavLink>
