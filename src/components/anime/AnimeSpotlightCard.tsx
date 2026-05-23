@@ -1,5 +1,4 @@
 import { Link } from 'react-router-dom'
-import { motion } from 'framer-motion'
 import type { AniListMedia } from '@/services/anime/anilist'
 
 type AnimeSpotlightCardProps = {
@@ -16,12 +15,7 @@ export function AnimeSpotlightCard({ anime, index = 0 }: AnimeSpotlightCardProps
   const poster = anime.coverImage?.extraLarge || anime.coverImage?.large || anime.bannerImage || ''
 
   return (
-    <motion.article
-      className="anime-card anime-tile spotlight-card"
-      initial={{ opacity: 0, y: 18 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.32, delay: index * 0.035 }}
-    >
+    <article className="anime-card anime-tile spotlight-card" style={{ animationDelay: `${index * 35}ms` }}>
       <div className="spotlight-poster-wrap">
         {poster ? <img src={poster} alt={title} /> : <div className="poster-fallback">{title.slice(0, 1)}</div>}
         <div className="spotlight-gradient" />
@@ -36,13 +30,13 @@ export function AnimeSpotlightCard({ anime, index = 0 }: AnimeSpotlightCardProps
           {anime.episodes ? <span>{anime.episodes} ep.</span> : null}
         </div>
       </div>
-    </motion.article>
+    </article>
   )
 }
 
-export function CommunityAnimeCard({ anime, compact = false }: { anime: { id: string; title: string; genre: string | null; poster_url: string; watch_url: string; profiles?: unknown }; compact?: boolean }) {
+export function CommunityAnimeCard({ anime, compact = false }: { anime: { id: string; title: string; genre: string | null; poster_url: string; watch_url: string }; compact?: boolean }) {
   return (
-    <motion.article className="anime-card anime-tile spotlight-card community-card" whileHover={{ y: -6 }}>
+    <article className="anime-card anime-tile spotlight-card community-card">
       <Link to={`/anime/${anime.id}`} className="spotlight-poster-wrap">
         <img src={anime.poster_url} alt={anime.title} />
         <div className="spotlight-gradient" />
@@ -55,6 +49,6 @@ export function CommunityAnimeCard({ anime, compact = false }: { anime: { id: st
           {!compact ? <a className="secondary-btn" href={anime.watch_url} target="_blank" rel="noreferrer">Regarder</a> : null}
         </div>
       </div>
-    </motion.article>
+    </article>
   )
 }
