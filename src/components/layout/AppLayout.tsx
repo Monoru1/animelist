@@ -2,6 +2,14 @@ import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { supabase } from '@/services/supabaseClient'
 
+const mainLinks = [
+  { to: '/library', label: 'Accueil', icon: '⌂' },
+  { to: '/history', label: 'Continuer', icon: '▶' },
+  { to: '/favorites', label: 'Favoris', icon: '♡' },
+  { to: '/add', label: 'Ajouter', icon: '+' },
+  { to: '/profile', label: 'Profil', icon: '◉' },
+]
+
 export function AppLayout() {
   const navigate = useNavigate()
   const [isAdmin, setIsAdmin] = useState(false)
@@ -27,13 +35,13 @@ export function AppLayout() {
   return (
     <div className="app-shell">
       <aside className="app-sidebar">
-        <h1 style={{ margin: 0, fontSize: 34 }}>Animelist</h1>
-        <p style={{ marginTop: 10, marginBottom: 30, color: 'var(--color-text-muted)', lineHeight: 1.5 }}>
-          Plateforme communautaire anime & playlists.
-        </p>
+        <div className="brand-block">
+          <h1>Animelist</h1>
+          <p>Anime OS communautaire.</p>
+        </div>
 
-        <nav style={{ display: 'grid', gap: 10 }}>
-          <NavLink to="/library" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>Bibliothèque</NavLink>
+        <nav className="desktop-nav">
+          <NavLink to="/library" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>Accueil</NavLink>
           <NavLink to="/history" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>Continuer</NavLink>
           <NavLink to="/favorites" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>Favoris</NavLink>
           <NavLink to="/add" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>Ajouter</NavLink>
@@ -43,7 +51,7 @@ export function AppLayout() {
           {isAdmin ? <NavLink to="/admin" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>Admin</NavLink> : null}
         </nav>
 
-        <button type="button" className="secondary-btn" onClick={() => void signOut()} style={{ position: 'absolute', left: 24, right: 24, bottom: 24 }}>
+        <button type="button" className="secondary-btn signout-btn" onClick={() => void signOut()}>
           Déconnexion
         </button>
       </aside>
@@ -51,6 +59,15 @@ export function AppLayout() {
       <main className="app-main">
         <Outlet />
       </main>
+
+      <nav className="bottom-nav" aria-label="Navigation mobile">
+        {mainLinks.map((link) => (
+          <NavLink key={link.to} to={link.to} className={({ isActive }) => isActive ? 'bottom-nav-link active' : 'bottom-nav-link'}>
+            <span>{link.icon}</span>
+            <small>{link.label}</small>
+          </NavLink>
+        ))}
+      </nav>
     </div>
   )
 }
