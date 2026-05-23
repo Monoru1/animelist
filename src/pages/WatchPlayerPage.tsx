@@ -91,6 +91,25 @@ function canEmbed(url: string) {
   }
 }
 
+function cleanLanguageLabel(language: string) {
+  const normalized = language.toUpperCase()
+  if (normalized.includes('VF') && normalized.includes('VOSTFR')) return 'VF / VOSTFR'
+  if (normalized.includes('VF')) return 'VF'
+  return 'VOSTFR'
+}
+
+function cleanQualityLabel(quality: string) {
+  const normalized = quality.toUpperCase()
+  if (normalized.includes('1080')) return '1080p'
+  if (normalized.includes('720')) return '720p'
+  if (normalized.includes('SD')) return 'SD'
+  return 'HD'
+}
+
+function sourceLabel(source: EpisodeSource) {
+  return `${cleanLanguageLabel(source.language)} · ${cleanQualityLabel(source.quality)}`
+}
+
 function fallbackEpisode(anime: WatchAnime): Episode[] {
   return Array.from({ length: 12 }, (_, index) => ({
     id: `${anime.id}-${index + 1}`,
@@ -160,10 +179,10 @@ export function WatchPlayerPage() {
             <p>{currentEpisode?.synopsis || anime.description || 'Aucune description disponible pour le moment.'}</p>
 
             {sources.length > 0 ? (
-              <div className="source-pills">
+              <div className="source-pills" aria-label="Sources disponibles">
                 {sources.map((source) => (
                   <button key={source.id} type="button" className={selectedSource?.id === source.id ? 'source-pill active' : 'source-pill'} onClick={() => setSelectedSourceId(source.id)}>
-                    {source.language} · {source.quality}
+                    {sourceLabel(source)}
                   </button>
                 ))}
               </div>
