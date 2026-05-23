@@ -27,75 +27,41 @@
   a { color: inherit; }
 }
 
-.app-shell {
-  min-height: 100vh;
-  width: 100%;
-  overflow-x: hidden;
-  background:
-    radial-gradient(circle at top left, rgba(124,92,255,.22), transparent 30%),
-    radial-gradient(circle at top right, rgba(255,132,64,.10), transparent 24%),
-    var(--color-bg);
-}
-
-.app-sidebar {
-  position: fixed;
-  inset: 0 auto 0 0;
-  width: 270px;
-  padding: 24px;
-  background: rgba(16,16,24,.94);
-  border-right: 1px solid rgba(255,255,255,.07);
-  backdrop-filter: blur(20px);
-  z-index: 50;
-}
-
-.app-main {
-  margin-left: 270px;
-  min-height: 100vh;
-  padding: clamp(18px, 3vw, 34px);
-  overflow-x: hidden;
-}
-
-.nav-link {
-  display: block;
-  padding: 14px 16px;
-  border-radius: 16px;
-  text-decoration: none;
-  font-weight: 800;
-  color: var(--color-text-muted);
-  white-space: nowrap;
-  transition: .18s ease;
-}
-
+.app-shell { min-height: 100vh; width: 100%; overflow-x: hidden; background: radial-gradient(circle at top left, rgba(124,92,255,.22), transparent 30%), radial-gradient(circle at top right, rgba(255,132,64,.10), transparent 24%), var(--color-bg); }
+.app-sidebar { position: fixed; inset: 0 auto 0 0; width: 270px; padding: 24px; background: rgba(16,16,24,.94); border-right: 1px solid rgba(255,255,255,.07); backdrop-filter: blur(20px); z-index: 50; }
+.app-main { margin-left: 270px; min-height: 100vh; padding: clamp(18px, 3vw, 34px); overflow-x: hidden; }
+.nav-link { display: block; padding: 14px 16px; border-radius: 16px; text-decoration: none; font-weight: 800; color: var(--color-text-muted); white-space: nowrap; transition: .18s ease; }
 .nav-link:hover { background: rgba(255,255,255,.06); color: white; }
 .nav-link.active { color: white; background: linear-gradient(135deg, var(--color-accent), var(--color-accent-hi)); box-shadow: 0 18px 50px rgba(124,92,255,.25); }
-
-.surface-panel, .form-panel {
-  max-width: 100%;
-  border-radius: clamp(20px, 3vw, 30px);
-  padding: clamp(16px, 3vw, 28px);
-  border: 1px solid rgba(255,255,255,.07);
-  background: rgba(19,19,26,.78);
-  backdrop-filter: blur(16px);
-}
-
+.surface-panel, .form-panel { max-width: 100%; border-radius: clamp(20px, 3vw, 30px); padding: clamp(16px, 3vw, 28px); border: 1px solid rgba(255,255,255,.07); background: rgba(19,19,26,.78); backdrop-filter: blur(16px); }
 .card-grid { display: grid; gap: 18px; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); }
 .anime-row { display: flex; gap: 16px; overflow-x: auto; overflow-y: hidden; max-width: 100%; padding: 4px 2px 18px; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; }
 .anime-row::-webkit-scrollbar { height: 8px; }
 .anime-row::-webkit-scrollbar-thumb { background: rgba(124,92,255,.75); border-radius: 999px; }
 .anime-tile { flex: 0 0 clamp(150px, 18vw, 230px); min-width: 0 !important; scroll-snap-align: start; }
-
 .anime-card { overflow: hidden; border-radius: 22px; border: 1px solid rgba(255,255,255,.07); background: rgba(255,255,255,.035); transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease; }
 .anime-card:hover { transform: translateY(-6px) scale(1.01); border-color: rgba(124,92,255,.5); box-shadow: 0 24px 60px rgba(0,0,0,.35); }
 .anime-card img { width: 100%; aspect-ratio: 2 / 3; object-fit: cover; }
 .anime-card h2 { overflow-wrap: anywhere; }
-
 .input-field { width: 100%; min-width: 0; border: 1px solid rgba(255,255,255,.08); background: rgba(255,255,255,.045); border-radius: 16px; padding: 14px; color: white; outline: none; }
 .input-field:focus { border-color: rgba(124,92,255,.8); box-shadow: 0 0 0 4px rgba(124,92,255,.12); }
-
 .primary-btn, .secondary-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; border-radius: 16px; padding: 13px 17px; font-weight: 800; text-decoration: none; transition: .18s ease; cursor: pointer; }
 .primary-btn { border: 0; color: white; background: linear-gradient(135deg, var(--color-accent), var(--color-accent-hi)); }
 .secondary-btn { border: 1px solid rgba(255,255,255,.09); background: rgba(255,255,255,.045); color: white; }
 .primary-btn:hover, .secondary-btn:hover { transform: translateY(-2px); }
+
+.spotlight-card { position: relative; background: rgba(255,255,255,.045); }
+.spotlight-poster-wrap { position: relative; display: block; overflow: hidden; text-decoration: none; }
+.spotlight-poster-wrap img { transition: transform .28s ease, filter .28s ease; }
+.spotlight-card:hover .spotlight-poster-wrap img { transform: scale(1.06); filter: saturate(1.12) contrast(1.04); }
+.spotlight-gradient { position: absolute; inset: auto 0 0; height: 55%; background: linear-gradient(180deg, transparent, rgba(0,0,0,.86)); pointer-events: none; }
+.score-pill { position: absolute; top: 10px; right: 10px; padding: 7px 10px; border-radius: 999px; color: white; font-weight: 900; font-size: 12px; background: rgba(10,10,11,.72); border: 1px solid rgba(255,255,255,.12); backdrop-filter: blur(12px); }
+.spotlight-content { padding: 14px; }
+.spotlight-content h3 { margin: 0 0 8px; font-size: 18px; line-height: 1.08; overflow-wrap: anywhere; }
+.spotlight-content p { margin: 0; color: var(--color-text-muted); font-size: 13px; line-height: 1.35; }
+.spotlight-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; color: var(--color-text-muted); font-size: 12px; font-weight: 800; }
+.spotlight-actions { display: grid; grid-template-columns: 1fr; gap: 8px; margin-top: 12px; }
+.poster-fallback { display: grid; place-items: center; aspect-ratio: 2 / 3; width: 100%; font-family: var(--font-display); font-size: 54px; font-weight: 900; color: white; background: linear-gradient(135deg, rgba(124,92,255,.8), rgba(20,20,32,.8)); }
 
 .anime-detail-page { position: relative; overflow: hidden; }
 .anime-detail-backdrop { position: absolute; inset: 0; background-size: cover; background-position: center; opacity: .14; filter: blur(22px); transform: scale(1.15); }
@@ -115,7 +81,6 @@
   .anime-detail-poster-wrap { margin: 0 auto; }
   .badge-row, .anime-detail-actions { justify-content: center; }
 }
-
 @media (max-width: 900px) {
   .app-sidebar { position: sticky; top: 0; width: 100%; height: auto; padding: 14px 14px 12px; border-right: 0; border-bottom: 1px solid rgba(255,255,255,.07); }
   .app-sidebar h1 { font-size: 26px !important; }
@@ -128,7 +93,6 @@
   .card-grid { grid-template-columns: repeat(auto-fill, minmax(145px, 1fr)); gap: 14px; }
   .anime-tile { flex-basis: 160px; }
 }
-
 @media (max-width: 560px) {
   .app-main { padding: 12px; }
   .surface-panel, .form-panel { padding: 14px; border-radius: 20px; }
@@ -136,8 +100,8 @@
   .anime-row { gap: 12px; padding-bottom: 14px; }
   .anime-tile { flex-basis: 138px; }
   .anime-card { border-radius: 18px; }
-  .anime-card h2 { font-size: 15px !important; line-height: 1.15; }
-  .anime-card p { font-size: 12px !important; }
+  .anime-card h2, .spotlight-content h3 { font-size: 15px !important; line-height: 1.15; }
+  .anime-card p, .spotlight-content p { font-size: 12px !important; }
   .primary-btn, .secondary-btn { width: 100%; padding: 12px 14px; }
   .anime-detail-card { gap: 18px; }
   .anime-detail-poster-wrap { max-width: 230px; }
@@ -146,7 +110,6 @@
   .anime-detail-actions { flex-direction: column; width: 100%; }
   .badge-row { justify-content: center; }
 }
-
 @media (max-width: 380px) {
   .anime-tile { flex-basis: 126px; }
   .card-grid { gap: 10px; }
