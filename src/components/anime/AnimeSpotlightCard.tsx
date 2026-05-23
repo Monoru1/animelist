@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { AniListMedia } from '@/services/anime/anilist'
 
@@ -10,6 +11,17 @@ function titleOf(anime: AniListMedia) {
   return anime.title.english || anime.title.romaji || anime.title.native || 'Anime'
 }
 
+function fallbackPoster(title: string) {
+  return `https://placehold.co/500x750/151520/9b7cff?text=${encodeURIComponent(title)}`
+}
+
+function SmartPoster({ src, title }: { src?: string | null; title: string }) {
+  const [failed, setFailed] = useState(!src)
+  const imageSrc = failed ? fallbackPoster(title) : String(src)
+
+  return <img src={imageSrc} alt={title} loading="lazy" referrerPolicy="no-referrer" onError={() => setFailed(true)} />
+}
+
 export function AnimeSpotlightCard({ anime, index = 0 }: AnimeSpotlightCardProps) {
   const title = titleOf(anime)
   const poster = anime.coverImage?.extraLarge || anime.coverImage?.large || anime.bannerImage || ''
@@ -17,7 +29,7 @@ export function AnimeSpotlightCard({ anime, index = 0 }: AnimeSpotlightCardProps
   return (
     <article className="anime-card anime-tile spotlight-card" style={{ animationDelay: `${index * 35}ms` }}>
       <div className="spotlight-poster-wrap">
-        {poster ? <img src={poster} alt={title} /> : <div className="poster-fallback">{title.slice(0, 1)}</div>}
+        <SmartPoster src={poster} title={title} />
         <div className="spotlight-gradient" />
         {anime.averageScore ? <span className="score-pill">★ {anime.averageScore}%</span> : null}
       </div>
@@ -38,7 +50,7 @@ export function CommunityAnimeCard({ anime, compact = false }: { anime: { id: st
   return (
     <article className="anime-card anime-tile spotlight-card community-card">
       <Link to={`/anime/${anime.id}`} className="spotlight-poster-wrap">
-        <img src={anime.poster_url} alt={anime.title} />
+        <SmartPoster src={anime.poster_url} title={anime.title} />
         <div className="spotlight-gradient" />
       </Link>
       <div className="spotlight-content">
