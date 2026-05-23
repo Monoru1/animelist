@@ -67,6 +67,34 @@ Inspirations officielles :
 
 ---
 
+# Fonctionnalités déjà présentes
+
+- Auth complète.
+- Profils utilisateurs.
+- Rôles admin/user.
+- Bibliothèque publique.
+- Ajout d’anime.
+- Favoris.
+- Historique.
+- Continue watching.
+- Playlist utilisateur.
+- Notifications.
+- Hero dynamique.
+- Sections anime.
+- Trending anime.
+- Popular anime.
+- Spotlight cards.
+- Anime detail page.
+- Metadata enrichies.
+- WatchPlayer interne.
+- Épisodes générés automatiquement.
+- Sources par épisode.
+- Source pack global avec `{episode}` et `{ep2}`.
+- Support VF / VOSTFR / qualité.
+- Support iframe / video directe / HLS côté données.
+
+---
+
 # APIs anime
 
 ## Déjà intégrées
@@ -94,26 +122,85 @@ Utilisation :
 
 ---
 
-# Fonctionnalités déjà présentes
+# Watch Player V3
 
-- Auth complète.
-- Profils utilisateurs.
-- Rôles admin/user.
-- Bibliothèque publique.
-- Ajout d’anime.
-- Favoris.
-- Historique.
-- Continue watching.
-- Playlist utilisateur.
-- Notifications.
-- Responsive de base.
-- Hero dynamique.
-- Sections anime.
-- Trending anime.
-- Popular anime.
-- Spotlight cards.
-- Anime detail page.
-- Metadata enrichies.
+Route :
+
+```txt
+/watch/:animeId
+```
+
+Le player est le coeur du produit.
+
+Fonctionnalités en place :
+
+- lecteur interne ;
+- sidebar épisodes ;
+- épisodes auto-générés ;
+- historique ;
+- progression ;
+- source switcher ;
+- langue VF / VOSTFR ;
+- qualité ;
+- miniatures ;
+- mode fallback cinématique ;
+- bouton épisode précédent ;
+- bouton épisode suivant ;
+- support source pack global.
+
+## Source Pack
+
+Le système permet de préparer plusieurs épisodes à partir d’une seule URL modèle :
+
+```txt
+https://cdn.exemple.com/anime/episode-{episode}.mp4
+https://cdn.exemple.com/anime/ep-{ep2}.m3u8
+```
+
+`{episode}` devient :
+
+```txt
+1, 2, 3, 4...
+```
+
+`{ep2}` devient :
+
+```txt
+01, 02, 03, 04...
+```
+
+Le player crée ensuite les sources dans `episode_sources` pour chaque épisode disponible.
+
+Important :
+les boutons `Regarder` doivent ouvrir le lecteur interne.
+
+---
+
+# Architecture streaming
+
+Tables actuelles / prévues :
+
+- anime_episodes
+- episode_sources
+- watch_progress
+- source_reports
+- anime_cache
+- streaming_cache
+- comments
+- reviews
+- follows
+- playlist_likes
+
+Architecture cible :
+
+```txt
+Anime
+ └── Saison
+      └── Episode
+           └── Langue
+                └── Qualité
+                     └── Source
+```
 
 ---
 
@@ -135,58 +222,6 @@ Priorités :
 - cards immersives ;
 - cinematic layout ;
 - app native feeling.
-
----
-
-# Watch Player V2
-
-À construire :
-
-```txt
-/watch/:animeId
-```
-
-Fonctionnalités prévues :
-
-- lecteur intégré ;
-- sidebar épisodes ;
-- historique ;
-- progression ;
-- continue watching ;
-- recommandations ;
-- autoplay ;
-- fullscreen ;
-- mode cinéma.
-
-Important :
-les boutons `Regarder` doivent ouvrir le lecteur interne.
-
----
-
-# Architecture streaming prévue
-
-Tables futures :
-
-- anime_sources
-- anime_episodes
-- episode_sources
-- watch_progress
-- source_reports
-- comments
-- reviews
-- follows
-- playlist_likes
-
-Architecture cible :
-
-```txt
-Anime
- └── Saison
-      └── Episode
-           └── Langue
-                └── Qualité
-                     └── Source
-```
 
 ---
 
