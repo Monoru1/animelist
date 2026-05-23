@@ -41,12 +41,10 @@ export function AnimeDetailPage() {
   const [anime, setAnime] = useState<AnimeDetail | null>(null)
   const [isFavorite, setIsFavorite] = useState(false)
   const [favoriteCount, setFavoriteCount] = useState(0)
-  const [message, setMessage] = useState('')
 
   useEffect(() => {
     async function loadAnime() {
       if (!animeId) return
-
       const { data: authData } = await supabase.auth.getUser()
       const userId = authData.user?.id
 
@@ -57,7 +55,6 @@ export function AnimeDetailPage() {
         .single()
 
       setAnime((data ?? null) as unknown as AnimeDetail | null)
-
       const { count } = await supabase.from('favorites').select('id', { count: 'exact', head: true }).eq('anime_id', animeId)
       setFavoriteCount(count ?? 0)
 
@@ -66,7 +63,6 @@ export function AnimeDetailPage() {
         setIsFavorite(Boolean(favorite))
       }
     }
-
     void loadAnime()
   }, [animeId])
 
@@ -95,31 +91,24 @@ export function AnimeDetailPage() {
   return (
     <section className="anime-detail-page">
       <div className="anime-detail-backdrop" style={{ backgroundImage: `url(${anime.poster_url})` }} />
-
       <div className="surface-panel anime-detail-card">
         <div className="anime-detail-poster-wrap">
           <img className="anime-detail-poster" src={anime.poster_url} alt={anime.title} />
         </div>
-
         <div className="anime-detail-content">
           <p className="eyebrow">ANIMELIST ORIGINAL · AJOUTÉ PAR {getAuthorName(anime.profiles).toUpperCase()}</p>
           <h1>{anime.title}</h1>
-
           <div className="badge-row">
             {detectBadges(anime.watch_url).map((badge) => <span key={badge} className="anime-badge">{badge}</span>)}
             <span className="anime-badge">Lecture intégrée</span>
           </div>
-
           {anime.genre ? <p className="anime-detail-genre">{anime.genre}</p> : null}
           <p className="anime-detail-description">{synopsis}</p>
-
           <div className="anime-detail-actions">
             <Link className="primary-btn" to={`/watch/${anime.id}`}>▶ Regarder maintenant</Link>
             <button className="secondary-btn" type="button" onClick={() => void toggleFavorite()}>{isFavorite ? '❤️ Favori' : '🤍 Ajouter aux favoris'} · {favoriteCount}</button>
             <Link className="secondary-btn" to="/library">Retour</Link>
           </div>
-
-          {message ? <p className="anime-detail-message">{message}</p> : null}
         </div>
       </div>
     </section>
