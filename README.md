@@ -1,12 +1,14 @@
 # Animelist
 
-Animelist est une plateforme communautaire anime inspirée de l’expérience Netflix / Crunchyroll. Le projet permet aux utilisateurs de créer un compte, ajouter des animés depuis des liens de visionnage, organiser leur propre playlist, sauvegarder des favoris, reprendre leur historique et consulter une bibliothèque publique alimentée par la communauté.
+Animelist est une plateforme communautaire anime inspirée de Netflix, Crunchyroll, AniList, Kibo Anime, Plex, Apple TV et des interfaces premium modernes. Le projet n’est plus pensé comme une simple bibliothèque anime : l’objectif est de le faire évoluer vers **Anime OS**, une expérience streaming communautaire next-gen, immersive, mobile-first, scalable et cinématique.
 
 Le site est connecté à Supabase pour l’authentification, la base de données, le stockage des affiches, les règles de sécurité RLS et les Edge Functions d’import automatique de métadonnées.
 
 ## État actuel
 
 Le site est fonctionnel et déployé sur Netlify. Les utilisateurs interagissent uniquement via l’interface du site : ils ne doivent pas aller dans Supabase. L’admin gère les contenus, les utilisateurs et la modération depuis l’interface web.
+
+Dernière direction produit validée : passage en **Mode Next-Gen / Évolution Massive** avec une refonte progressive vers une vraie app anime premium, inspirée de Kibo Anime, Netflix, Crunchyroll, AniList, Plex, Steam UI, Apple TV et Active Theory.
 
 ## Fonctionnalités principales
 
@@ -27,6 +29,50 @@ Le site est fonctionnel et déployé sur Netlify. Les utilisateurs interagissent
 - Recherche par titre ou genre.
 - Sections type streaming : ajouts récents, populaires communauté, catégories.
 - Cards cliquables vers une fiche anime immersive.
+
+### Anime Data Engine
+
+Services ajoutés ou en cours de structuration :
+
+```txt
+src/services/anime/
+  anilist.ts
+  jikan.ts
+  kitsu.ts          # prévu
+  tmdb.ts           # prévu
+  metadata.ts       # prévu
+  recommendations.ts# prévu
+  trending.ts       # prévu
+  sync-engine.ts    # prévu
+```
+
+Déjà ajouté :
+
+- `src/services/anime/anilist.ts`
+  - GraphQL AniList.
+  - Trending anime.
+  - Popular anime.
+  - Search anime.
+  - Metadata : score, popularité, saison, épisodes, genres, covers HD, banners HD.
+
+- `src/services/anime/jikan.ts`
+  - Recherche anime.
+  - Top anime.
+  - Saisons actuelles.
+  - Metadata : synopsis, score, épisodes, trailer, studios, genres, images.
+
+Objectif du moteur :
+
+- enrichir automatiquement les fiches anime ;
+- récupérer tendances ;
+- récupérer saisons ;
+- récupérer recommandations ;
+- récupérer planning ;
+- récupérer trailers ;
+- récupérer ratings ;
+- récupérer studios ;
+- récupérer relations entre animes ;
+- synchroniser intelligemment les données.
 
 ### Ajout réel d’anime
 
@@ -54,6 +100,20 @@ Le site est fonctionnel et déployé sur Netlify. Les utilisateurs interagissent
 - Badges dynamiques selon le lien : HD, VF, VOSTFR, Anime-Sama, Neko, etc.
 - Enregistrement automatique dans l’historique lorsque l’utilisateur clique sur regarder.
 
+Évolution V2 prévue :
+
+- immense bannière immersive ;
+- overlay noir/violet ;
+- score animé ;
+- trailer ;
+- genres stylisés ;
+- studios ;
+- personnages ;
+- recommandations similaires ;
+- relations anime ;
+- statistiques communautaires ;
+- effet Netflix / Apple TV.
+
 ### Favoris
 
 - Ajout / retrait d’un anime en favori.
@@ -77,6 +137,15 @@ Le site est fonctionnel et déployé sur Netlify. Les utilisateurs interagissent
 - L’admin peut supprimer tous les animés.
 - Correction RLS appliquée pour éviter l’erreur `permission denied for function is_admin` lors de la suppression.
 
+Évolution prévue :
+
+- playlists publiques/privées ;
+- pages playlists détaillées ;
+- partage ;
+- likes ;
+- sauvegardes ;
+- tendances playlists.
+
 ### Administration
 
 - Page `/admin`.
@@ -86,6 +155,17 @@ Le site est fonctionnel et déployé sur Netlify. Les utilisateurs interagissent
 - Suppression d’anime avec raison de modération.
 - Envoi d’une notification à l’utilisateur concerné.
 - Journalisation dans `moderation_logs`.
+
+Évolution prévue :
+
+- dashboard statistiques ;
+- derniers ajouts ;
+- contenus signalés ;
+- utilisateurs récents ;
+- logs propres ;
+- filtres ;
+- recherche ;
+- actions rapides.
 
 ### Notifications
 
@@ -102,15 +182,57 @@ Le site est fonctionnel et déployé sur Netlify. Les utilisateurs interagissent
 - Les fonctions sensibles ne sont plus exposées publiquement en RPC.
 - L’accès admin est vérifié via la table `profiles` et les policies.
 
+À renforcer :
+
+- rate limiting ;
+- validation de liens ;
+- sanitation input ;
+- protection spam ;
+- protection upload ;
+- modération communauté ;
+- report system.
+
 ### Responsive et design
 
 - Direction artistique sombre/violette premium.
-- Inspiration Netflix / Crunchyroll.
+- Inspiration Netflix / Crunchyroll / Kibo Anime.
 - Carrousels horizontaux type streaming.
-- Cards animées avec hover desktop.
+- Cards avec hover desktop.
 - Layout responsive pour desktop, tablette et mobile.
 - Correction globale de plusieurs problèmes d’overflow horizontal.
 - Support mobile avec `viewport-fit=cover`, theme color et `apple-touch-icon`.
+
+Évolution Next-Gen :
+
+- bottom navigation mobile ;
+- gestures ;
+- swipe transitions ;
+- preload intelligent ;
+- sensation app native ;
+- transitions de pages premium ;
+- micro-interactions ;
+- glow effects ;
+- overlays dynamiques ;
+- gradients cinématiques ;
+- blur premium.
+
+### Composants premium ajoutés
+
+- `src/components/ui/SectionHeader.tsx`
+  - titres de sections premium ;
+  - badges ;
+  - sous-titres ;
+  - usage prévu sur Home, Library, profils, playlists.
+
+- `src/components/anime/AnimeSpotlightCard.tsx`
+  - cards anime immersives ;
+  - score pill ;
+  - gradient overlay ;
+  - metadata ;
+  - fallback poster ;
+  - version communautaire `CommunityAnimeCard`.
+
+Important : Framer Motion a été temporairement retiré du `package.json` pour éviter la casse Netlify tant que `pnpm-lock.yaml` n’est pas régénéré. Les animations actuelles doivent rester en CSS natif jusqu’à régénération propre du lockfile.
 
 ## Stack technique
 
@@ -132,7 +254,7 @@ Le site est fonctionnel et déployé sur Netlify. Les utilisateurs interagissent
 - Tailwind CSS v4
 - CSS-first tokens dans `src/styles/tokens.css`
 - Fonts Bunny : Inter + Space Grotesk
-- Design system custom : surfaces, cards, boutons, responsive, carrousels
+- Design system custom : surfaces, cards, boutons, responsive, carrousels, spotlight cards
 
 ### Backend
 
@@ -147,6 +269,13 @@ Le site est fonctionnel et déployé sur Netlify. Les utilisateurs interagissent
 - Edge Function Supabase : `anime-metadata`
 - Scraping léger de métadonnées HTML : `og:image`, `twitter:image`, `title`, `h1`, description
 - Fallback API Jikan pour récupérer les informations anime
+
+### APIs anime prévues
+
+- AniList API : priorité principale pour tendances, saisons, recommandations, relations, personnages, studios, stats, planning.
+- Jikan API : fallback metadata MyAnimeList.
+- TMDB API : posters HD, backgrounds HD, trailers, assets premium.
+- Kitsu API : catégories, tags, metadata complémentaires.
 
 ### Déploiement
 
@@ -196,6 +325,8 @@ pnpm lint       # lint ESLint
 3. Ajouter les variables Supabase.
 4. Déployer depuis la branche `main`.
 
+Attention : Netlify utilise `pnpm install` avec frozen lockfile. Toute dépendance ajoutée dans `package.json` doit être accompagnée d’un `pnpm-lock.yaml` régénéré. Sinon, le build échoue avec `ERR_PNPM_OUTDATED_LOCKFILE`.
+
 ## Modèle de données actuel
 
 Tables principales :
@@ -217,20 +348,114 @@ Edge Functions :
 
 - `anime-metadata`
 
-## Points encore à améliorer
+## Modèle de données Next-Gen prévu
 
-- Finaliser le polish responsive mobile sur toutes les pages.
-- Ajouter une vraie navigation mobile type bottom nav ou hamburger.
-- Ajouter des profils publics consultables.
-- Ajouter des playlists publiques consultables.
-- Améliorer la section tendances avec un vrai calcul basé sur favoris + historique.
-- Ajouter skeleton loading et toasts propres à la place des alertes navigateur.
-- Ajouter une meilleure gestion des images cassées avec fallback poster.
-- Améliorer la page admin avec édition de contenu, recherche et filtres.
-- Ajouter tests, monitoring et typage Supabase généré.
+À ajouter progressivement :
+
+- `anime_sources`
+- `episode_sources`
+- `source_languages`
+- `source_quality`
+- `source_reports`
+- `comments`
+- `reviews`
+- `follows`
+- `playlist_likes`
+- `anime_metadata_cache`
+- `anime_trending_cache`
+- `anime_schedule_cache`
+- `user_activity`
+- `premium_entitlements`
+
+## Système sources streaming prévu
+
+Architecture cible :
+
+```txt
+Anime
+ └── Saison
+      └── Langue
+            └── Qualité
+                  └── Source
+```
+
+Fonctionnalités prévues :
+
+- switch source dynamique ;
+- switch langue ;
+- switch qualité ;
+- fallback source automatique ;
+- détection liens morts ;
+- badges qualité source ;
+- report system ;
+- modération admin.
+
+Important légal : ne pas contourner les protections, pubs, DRM ou systèmes anti-abus de plateformes tierces. Les sources doivent être modérées, signalables, et idéalement légales, autorisées ou embeddables.
+
+## Lecteur vidéo premium prévu
+
+- HLS.js ;
+- auto next ;
+- sauvegarde progression ;
+- skip intro ;
+- vitesse lecture ;
+- fullscreen ;
+- Picture-in-Picture ;
+- qualité adaptive ;
+- sous-titres ;
+- preview timeline ;
+- mini player ;
+- mode cinéma.
+
+## Home Page Cinematic prévue
+
+La `LibraryPage` doit évoluer vers une vraie Home streaming avec :
+
+- hero anime tendance fullscreen ;
+- background vidéo/trailer si possible ;
+- overlay sombre Netflix ;
+- bouton Regarder ;
+- bouton Playlist ;
+- infos anime ;
+- transitions automatiques ;
+- tendances ;
+- récemment ajoutés ;
+- anime du jour ;
+- top communauté ;
+- repris récemment ;
+- recommandations ;
+- populaires cette semaine ;
+- nouveautés saisonnières ;
+- playlists populaires.
+
+## Roadmap prioritaire
+
+1. Corriger tout build Netlify avant chaque feature.
+2. Refaire `LibraryPage` en Home Cinematic.
+3. Ajouter bottom navigation mobile.
+4. Créer `AnimeDetailPage` V2 avec metadata riches.
+5. Créer profils publics `/u/:username`.
+6. Créer playlists publiques.
+7. Ajouter tendances réelles via AniList + cache Supabase.
+8. Ajouter recommandations simples par genre, favoris, historique.
+9. Ajouter système reports/sources streaming.
+10. Ajouter planning anime premium.
+11. Ajouter skeleton loading, empty states, toasts modernes.
+12. Ajouter système premium/monétisation.
 
 ## Vision produit
 
-Animelist doit devenir une plateforme anime communautaire où les utilisateurs peuvent rapidement partager des animés trouvés sur différents sites, centraliser leurs liens, construire des playlists publiques, reprendre leur historique et découvrir ce que la communauté ajoute.
+Animelist doit devenir **Anime OS** : une plateforme anime communautaire next-gen où les utilisateurs peuvent rapidement partager des animés trouvés sur différents sites, centraliser leurs liens, construire des playlists publiques, reprendre leur historique, découvrir les tendances, suivre d’autres profils, recevoir des recommandations intelligentes et vivre une expérience proche d’une vraie app native.
 
 L’objectif n’est pas de laisser les utilisateurs manipuler la base de données : tout doit être géré depuis l’interface web, avec Supabase comme backend invisible et sécurisé.
+
+Le rendu attendu doit faire :
+
+- application réelle ;
+- streaming premium ;
+- cinématique ;
+- communautaire ;
+- scalable ;
+- addictif ;
+- mobile-first ;
+- professionnel.
