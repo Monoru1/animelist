@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { supabase } from '@/services/supabaseClient'
 
@@ -24,9 +24,16 @@ function detectBadges(url: string) {
   const badges = ['HD']
   if (value.includes('vostfr')) badges.push('VOSTFR')
   if (value.includes('vf')) badges.push('VF')
-  if (value.includes('anime-sama')) badges.push('Anime-Sama')
+  if (value.includes('anime-sama')) badges.push('VF/VOSTFR')
   if (value.includes('neko')) badges.push('Neko')
-  return badges
+  return Array.from(new Set(badges))
+}
+
+function enrichSynopsis(title: string, description: string | null) {
+  const clean = (description ?? '').trim()
+  if (clean.length > 130) return clean
+  if (clean.length > 0) return `${clean} Découvre l’histoire, les combats, les enjeux et l’univers de ${title} dans une expérience de lecture immersive pensée pour reprendre rapidement ton visionnage.`
+  return `${title} t’embarque dans une aventure anime intense, rythmée par ses personnages, ses enjeux et son univers. Lance la lecture, ajoute-le à tes favoris ou garde-le dans ta playlist pour reprendre plus tard.`
 }
 
 export function AnimeDetailPage() {
@@ -63,6 +70,8 @@ export function AnimeDetailPage() {
     void loadAnime()
   }, [animeId])
 
+  const synopsis = useMemo(() => anime ? enrichSynopsis(anime.title, anime.description) : '', [anime])
+
   async function toggleFavorite() {
     if (!animeId) return
     const { data: authData } = await supabase.auth.getUser()
@@ -81,22 +90,6 @@ export function AnimeDetailPage() {
     setFavoriteCount((value) => value + 1)
   }
 
-  async function markWatching() {
-    if (!animeId) return
-    const { data: authData } = await supabase.auth.getUser()
-    const userId = authData.user?.id
-    if (!userId) return
-
-    await supabase.from('watch_history').upsert({
-      user_id: userId,
-      anime_id: animeId,
-      progress_seconds: 0,
-      last_watched_at: new Date().toISOString(),
-    }, { onConflict: 'user_id,anime_id' })
-
-    setMessage('Ajouté à Continuer à regarder.')
-  }
-
   if (!anime) return <p>Chargement...</p>
 
   return (
@@ -109,18 +102,19 @@ export function AnimeDetailPage() {
         </div>
 
         <div className="anime-detail-content">
-          <p className="eyebrow">AJOUTÉ PAR {getAuthorName(anime.profiles).toUpperCase()}</p>
+          <p className="eyebrow">ANIMELIST ORIGINAL · AJOUTÉ PAR {getAuthorName(anime.profiles).toUpperCase()}</p>
           <h1>{anime.title}</h1>
 
           <div className="badge-row">
             {detectBadges(anime.watch_url).map((badge) => <span key={badge} className="anime-badge">{badge}</span>)}
+            <span className="anime-badge">Lecture intégrée</span>
           </div>
 
           {anime.genre ? <p className="anime-detail-genre">{anime.genre}</p> : null}
-          {anime.description ? <p className="anime-detail-description">{anime.description}</p> : null}
+          <p className="anime-detail-description">{synopsis}</p>
 
           <div className="anime-detail-actions">
-            <a className="primary-btn" href={anime.watch_url} target="_blank" rel="noreferrer" onClick={() => void markWatching()}>Regarder maintenant</a>
+            <Link className="primary-btn" to={`/watch/${anime.id}`}>▶ Regarder maintenant</Link>
             <button className="secondary-btn" type="button" onClick={() => void toggleFavorite()}>{isFavorite ? '❤️ Favori' : '🤍 Ajouter aux favoris'} · {favoriteCount}</button>
             <Link className="secondary-btn" to="/library">Retour</Link>
           </div>
