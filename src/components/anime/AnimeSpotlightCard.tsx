@@ -18,7 +18,6 @@ function fallbackPoster(title: string) {
 function SmartPoster({ src, title }: { src?: string | null; title: string }) {
   const [failed, setFailed] = useState(!src)
   const imageSrc = failed ? fallbackPoster(title) : String(src)
-
   return <img src={imageSrc} alt={title} loading="lazy" referrerPolicy="no-referrer" onError={() => setFailed(true)} />
 }
 
@@ -33,7 +32,6 @@ export function AnimeSpotlightCard({ anime, index = 0 }: AnimeSpotlightCardProps
         <div className="spotlight-gradient" />
         {anime.averageScore ? <span className="score-pill">★ {anime.averageScore}%</span> : null}
       </div>
-
       <div className="spotlight-content">
         <h3>{title}</h3>
         <p>{anime.genres?.slice(0, 3).join(' · ') || 'Anime'}</p>
@@ -58,7 +56,7 @@ export function CommunityAnimeCard({ anime, compact = false }: { anime: { id: st
         <p>{anime.genre || 'Communauté'}</p>
         <div className="spotlight-actions">
           <Link className="primary-btn" to={`/anime/${anime.id}`}>Voir</Link>
-          {!compact ? <a className="secondary-btn" href={anime.watch_url} target="_blank" rel="noreferrer">Regarder</a> : null}
+          {!compact ? <Link className="secondary-btn" to={`/watch/${anime.id}`}>Regarder</Link> : null}
         </div>
       </div>
     </article>
