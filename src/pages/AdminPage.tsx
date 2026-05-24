@@ -1,282 +1,376 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, Navigate } from 'react-router-dom'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/services/supabaseClient'
+import {
+  useAdminStats,
+  useAdminAnimes,
+  useAdminProfiles,
+  useDeleteAnimeAsAdmin,
+  useAddSourcePack,
+  useSendGlobalNotification,
+} from '@/features/admin/hooks/useAdmin'
+import type { AdminAnime } from '@/features/admin/api/admin'
+import { ROUTES } from '@/app/routes'
 
-type AnimeRow = {
-  id: string
-  user_id: string
-  title: string
-  poster_url: string
-  watch_url: string
-  created_at: string
-}
+type Tab = 'overview' | 'animes' | 'sources' | 'notifications' | 'moderation'
 
-type ProfileRow = {
-  id: string
-  username: string
-  email: string
-  role: string
-  created_at: string
-}
-
-type EpisodeRow = {
-  id: string
-  anime_id: string
-  episode_number: number
-}
-
-async function fetchAdminData() {
-  const [{ data: animes, error: animeError }, { data: profiles, error: profileError }] = await Promise.all([
-    supabase.from('animes').select('id,user_id,title,poster_url,watch_url,created_at').order('created_at', { ascending: false }),
-    supabase.from('profiles').select('id,username,email,role,created_at').order('created_at', { ascending: false }),
-  ])
-
-  if (animeError) throw animeError
-  if (profileError) throw profileError
-
-  return {
-    animes: (animes ?? []) as AnimeRow[],
-    profiles: (profiles ?? []) as ProfileRow[],
-  }
-}
-
-function buildEpisodeUrl(template: string, episodeNumber: number) {
-  const value = template.trim()
-  if (!value) return ''
-  if (value.includes('{episode}')) return value.replaceAll('{episode}', String(episodeNumber))
-  if (value.includes('{ep2}')) return value.replaceAll('{ep2}', String(episodeNumber).padStart(2, '0'))
-  return episodeNumber === 1 ? value : ''
-}
-
-function sourceTypeFromUrl(url: string) {
-  const lower = url.toLowerCase()
-  if (lower.includes('.mp4') || lower.includes('.webm')) return 'video'
-  if (lower.includes('.m3u8')) return 'hls'
-  return 'embed'
+function StatCard({ label, value, color }: { label: string; value: number; color?: string }) {
+  return (
+    <div className="admin-stat-card">
+      <p className="admin-stat-value" style={{ color: color ?? 'var(--color-accent-hi)' }}>{value}</p>
+      <p className="admin-stat-label">{label}</p>
+    </div>
+  )
 }
 
 export function AdminPage() {
-  const queryClient = useQueryClient()
+  const [activeTab, setActiveTab] = useState<Tab>('overview')
   const [isCheckingAdmin, setIsCheckingAdmin] = useState(true)
   const [isAdmin, setIsAdmin] = useState(false)
-  const [targetAnime, setTargetAnime] = useState<AnimeRow | null>(null)
-  const [sourceAnime, setSourceAnime] = useState<AnimeRow | null>(null)
+  const [adminId, setAdminId] = useState('')
+
+  // Source pack state
+  const [sourceAnime, setSourceAnime] = useState<AdminAnime | null>(null)
   const [sourceTemplate, setSourceTemplate] = useState('')
   const [sourceLanguage, setSourceLanguage] = useState('VOSTFR')
   const [sourceQuality, setSourceQuality] = useState('HD')
-  const [reason, setReason] = useState('')
-  const [message, setMessage] = useState('')
-  const [loadingAction, setLoadingAction] = useState(false)
 
-  useEffect(() => {
-    async function checkAdmin() {
+  // Delete state
+  const [targetAnime, setTargetAnime] = useState<AdminAnime | null>(null)
+  const [deleteReason, setDeleteReason] = useState('')
+
+  // Global notif state
+  const [notifTitle, setNotifTitle] = useState('')
+  const [notifMessage, setNotifMessage] = useState('')
+
+  const [feedback, setFeedback] = useState('')
+
+  useQuery({
+    queryKey: ['admin-check'],
+    queryFn: async () => {
       const { data: authData } = await supabase.auth.getUser()
       const userId = authData.user?.id
-
-      if (!userId) {
-        setIsCheckingAdmin(false)
-        return
-      }
-
+      if (!userId) { setIsCheckingAdmin(false); return null }
       const { data } = await supabase.from('profiles').select('role').eq('id', userId).single()
       setIsAdmin(data?.role === 'admin')
+      setAdminId(userId)
       setIsCheckingAdmin(false)
-    }
-
-    void checkAdmin()
-  }, [])
-
-  const { data, isLoading, error } = useQuery({
-    queryKey: ['admin-data'],
-    queryFn: fetchAdminData,
-    enabled: isAdmin,
+      return data
+    },
   })
 
-  async function deleteAnime(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
+  const { data: stats } = useAdminStats()
+  const { data: animes = [], isLoading: animesLoading } = useAdminAnimes()
+  const { data: profiles = [], isLoading: profilesLoading } = useAdminProfiles()
+  const deleteAnime = useDeleteAnimeAsAdmin()
+  const addSource = useAddSourcePack()
+  const sendNotif = useSendGlobalNotification()
 
-    if (!targetAnime) return
-    if (!reason.trim()) {
-      setMessage('Raison obligatoire.')
-      return
-    }
+  if (isCheckingAdmin) return <p style={{ padding: 32 }}>Vérification des accès…</p>
+  if (!isAdmin) return <Navigate to={ROUTES.LIBRARY} replace />
 
-    setLoadingAction(true)
-    setMessage('')
+  const tabs: { id: Tab; label: string }[] = [
+    { id: 'overview', label: "Vue d'ensemble" },
+    { id: 'animes', label: 'Animés' },
+    { id: 'sources', label: 'Sources' },
+    { id: 'notifications', label: 'Notifications' },
+    { id: 'moderation', label: 'Modération' },
+  ]
 
+  async function handleDeleteAnime(e: FormEvent) {
+    e.preventDefault()
+    if (!targetAnime || !deleteReason.trim()) return
+    setFeedback('')
     try {
-      const { data: authData } = await supabase.auth.getUser()
-      const adminId = authData.user?.id ?? null
-
-      const { error: deleteError } = await supabase.from('animes').delete().eq('id', targetAnime.id)
-      if (deleteError) throw deleteError
-
-      await supabase.from('notifications').insert({
-        user_id: targetAnime.user_id,
-        title: 'Animé supprimé',
-        message: `Ton animé « ${targetAnime.title} » a été supprimé par la modération.`,
-        reason: reason.trim(),
+      await deleteAnime.mutateAsync({
+        animeId: targetAnime.id,
+        userId: targetAnime.user_id,
+        title: targetAnime.title,
+        reason: deleteReason,
+        adminId,
       })
-
-      await supabase.from('moderation_logs').insert({
-        admin_id: adminId,
-        target_user_id: targetAnime.user_id,
-        target_anime_id: targetAnime.id,
-        action: 'delete_anime',
-        reason: reason.trim(),
-      })
-
-      setReason('')
       setTargetAnime(null)
-      setMessage('Animé supprimé et notification envoyée.')
-      await queryClient.invalidateQueries({ queryKey: ['admin-data'] })
-      await queryClient.invalidateQueries({ queryKey: ['public-animes'] })
-    } catch (deleteError) {
-      setMessage(deleteError instanceof Error ? deleteError.message : 'Erreur suppression.')
-    } finally {
-      setLoadingAction(false)
+      setDeleteReason('')
+      setFeedback('✓ Animé supprimé et notification envoyée.')
+    } catch (err) {
+      setFeedback(err instanceof Error ? err.message : 'Erreur suppression.')
     }
   }
 
-  async function addSourcePack(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
+  async function handleAddSource(e: FormEvent) {
+    e.preventDefault()
     if (!sourceAnime || !sourceTemplate.trim()) return
-
-    setLoadingAction(true)
-    setMessage('')
-
+    setFeedback('')
     try {
-      const { data: authData } = await supabase.auth.getUser()
-      const adminId = authData.user?.id
-      if (!adminId) throw new Error('Session admin introuvable.')
-
-      const { data: episodes, error: episodeError } = await supabase
-        .from('anime_episodes')
-        .select('id,anime_id,episode_number')
-        .eq('anime_id', sourceAnime.id)
-        .order('episode_number', { ascending: true })
-
-      if (episodeError) throw episodeError
-
-      const rows = ((episodes ?? []) as EpisodeRow[])
-        .map((episode) => ({ episode, url: buildEpisodeUrl(sourceTemplate, episode.episode_number) }))
-        .filter((entry) => entry.url)
-        .map((entry, index) => ({
-          episode_id: entry.episode.id,
-          label: `${sourceLanguage} ${sourceQuality}`,
-          language: sourceLanguage,
-          quality: sourceQuality,
-          source_url: entry.url,
-          source_type: sourceTypeFromUrl(entry.url),
-          is_default: index === 0,
-          is_active: true,
-          created_by: adminId,
-        }))
-
-      if (rows.length === 0) throw new Error('Aucune source générée. Utilise une URL directe pour EP1 ou un modèle avec {episode} / {ep2}.')
-
-      const { error: sourceError } = await supabase.from('episode_sources').insert(rows)
-      if (sourceError) throw sourceError
-
-      setSourceTemplate('')
+      const count = await addSource.mutateAsync({
+        animeId: sourceAnime.id,
+        adminId,
+        template: sourceTemplate,
+        language: sourceLanguage,
+        quality: sourceQuality,
+      })
       setSourceAnime(null)
-      setMessage(`${rows.length} source(s) ajoutée(s) pour ${sourceAnime.title}.`)
-      await queryClient.invalidateQueries({ queryKey: ['admin-data'] })
-      await queryClient.invalidateQueries({ queryKey: ['watch-payload', sourceAnime.id] })
-    } catch (sourceError) {
-      setMessage(sourceError instanceof Error ? sourceError.message : 'Erreur ajout source.')
-    } finally {
-      setLoadingAction(false)
+      setSourceTemplate('')
+      setFeedback(`✓ ${count} source(s) ajoutée(s) pour « ${sourceAnime.title} ».`)
+    } catch (err) {
+      setFeedback(err instanceof Error ? err.message : 'Erreur source.')
     }
   }
 
-  if (isCheckingAdmin) return <p>Vérification des accès...</p>
-  if (!isAdmin) return <Navigate to="/library" replace />
+  async function handleSendNotif(e: FormEvent) {
+    e.preventDefault()
+    if (!notifTitle.trim() || !notifMessage.trim()) return
+    setFeedback('')
+    try {
+      await sendNotif.mutateAsync({ title: notifTitle, message: notifMessage })
+      setNotifTitle('')
+      setNotifMessage('')
+      setFeedback('✓ Notification globale envoyée à tous les utilisateurs.')
+    } catch (err) {
+      setFeedback(err instanceof Error ? err.message : 'Erreur notification.')
+    }
+  }
 
   return (
-    <section>
-      <div className="surface-panel" style={{ marginBottom: 24 }}>
-        <p style={{ color: 'var(--color-accent-hi)', fontWeight: 900, margin: 0 }}>ADMINISTRATION</p>
+    <main className="admin-page">
+      {/* Header */}
+      <div className="surface-panel admin-header">
+        <p className="eyebrow" style={{ margin: 0 }}>ADMINISTRATION</p>
         <h1>Centre de contrôle</h1>
-        <p style={{ color: 'var(--color-text-muted)' }}>Gestion interne, modération, sources et contenus communautaires.</p>
+        <p style={{ color: 'var(--color-text-muted)', margin: 0 }}>
+          Gestion interne, modération, sources et contenus communautaires.
+        </p>
       </div>
 
-      {isLoading ? <p>Chargement admin...</p> : null}
-      {error ? <p>Impossible de charger les données admin.</p> : null}
-      {message ? <p>{message}</p> : null}
+      {/* Tabs */}
+      <div className="admin-tabs">
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            className={`admin-tab${activeTab === tab.id ? ' admin-tab--active' : ''}`}
+            onClick={() => { setActiveTab(tab.id); setFeedback('') }}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
 
-      <div style={{ display: 'grid', gap: 24, gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))' }}>
-        <section>
-          <h2>Animés ajoutés</h2>
-          <div style={{ display: 'grid', gap: 12 }}>
-            {data?.animes.map((anime) => (
-              <article key={anime.id} className="surface-panel" style={{ display: 'flex', gap: 12, padding: 12 }}>
-                <img src={anime.poster_url} alt={anime.title} style={{ width: 70, height: 100, objectFit: 'cover', borderRadius: 8 }} />
-                <div style={{ overflow: 'hidden' }}>
+      {feedback ? (
+        <div className={`admin-feedback${feedback.startsWith('✓') ? ' admin-feedback--success' : ' admin-feedback--error'}`}>
+          {feedback}
+        </div>
+      ) : null}
+
+      {/* ── VUE D'ENSEMBLE ─────────────────────────────────────── */}
+      {activeTab === 'overview' ? (
+        <div className="admin-overview">
+          <div className="admin-stats-grid">
+            <StatCard label="Animés total" value={stats?.animeCount ?? 0} />
+            <StatCard label="Utilisateurs" value={stats?.userCount ?? 0} color="#4ade80" />
+          </div>
+          <div className="admin-quick-links surface-panel">
+            <h2>Accès rapides</h2>
+            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+              <button className="secondary-btn" type="button" onClick={() => setActiveTab('animes')}>Gestion animés</button>
+              <button className="secondary-btn" type="button" onClick={() => setActiveTab('sources')}>Ajouter des sources</button>
+              <button className="secondary-btn" type="button" onClick={() => setActiveTab('notifications')}>Envoyer une notif</button>
+              <button className="secondary-btn" type="button" onClick={() => setActiveTab('moderation')}>Voir utilisateurs</button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {/* ── GESTION ANIMÉS ─────────────────────────────────────── */}
+      {activeTab === 'animes' ? (
+        <div className="admin-section">
+          <h2>Animés ajoutés ({animes.length})</h2>
+          {animesLoading ? <p>Chargement…</p> : null}
+          <div className="admin-anime-list">
+            {animes.map((anime) => (
+              <div key={anime.id} className="admin-anime-row surface-panel">
+                <img src={anime.poster_url} alt={anime.title} className="admin-anime-thumb" />
+                <div className="admin-anime-info">
                   <strong>{anime.title}</strong>
-                  <p style={{ color: 'var(--color-text-muted)', overflowWrap: 'anywhere' }}>{anime.watch_url}</p>
-                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                    <Link className="secondary-btn" to={`/watch/${anime.id}`}>Player</Link>
-                    <button className="secondary-btn" type="button" onClick={() => setSourceAnime(anime)}>Sources</button>
-                    <button className="secondary-btn" type="button" onClick={() => setTargetAnime(anime)}>Supprimer</button>
-                  </div>
+                  {anime.genre ? <span style={{ color: 'var(--color-text-muted)', fontSize: 13 }}>{anime.genre}</span> : null}
+                  <span style={{ color: 'var(--color-text-muted)', fontSize: 12 }}>{new Date(anime.created_at).toLocaleDateString('fr-FR')}</span>
                 </div>
-              </article>
+                <div className="admin-anime-actions">
+                  <Link className="secondary-btn" to={ROUTES.WATCH(anime.id)}>Player</Link>
+                  <button
+                    className="secondary-btn"
+                    type="button"
+                    onClick={() => { setSourceAnime(anime); setActiveTab('sources') }}
+                  >Sources</button>
+                  <button
+                    className="secondary-btn"
+                    type="button"
+                    style={{ color: '#ef4444', borderColor: 'rgba(239,68,68,.3)' }}
+                    onClick={() => setTargetAnime(anime)}
+                  >Supprimer</button>
+                </div>
+              </div>
             ))}
           </div>
-        </section>
 
-        <section>
-          <h2>Utilisateurs</h2>
-          <div style={{ display: 'grid', gap: 12 }}>
-            {data?.profiles.map((profile) => (
-              <article key={profile.id} className="surface-panel" style={{ padding: 14 }}>
-                <strong>{profile.username}</strong>
-                <p>{profile.email}</p>
-                <p>Role: {profile.role}</p>
-              </article>
+          {/* Confirm delete */}
+          {targetAnime ? (
+            <form onSubmit={(e) => void handleDeleteAnime(e)} className="surface-panel admin-form">
+              <h3>Supprimer « {targetAnime.title} »</h3>
+              <textarea
+                className="input-field"
+                value={deleteReason}
+                onChange={(e) => setDeleteReason(e.target.value)}
+                placeholder="Raison obligatoire (visible par l'utilisateur)"
+                required
+                rows={3}
+              />
+              <div style={{ display: 'flex', gap: 12 }}>
+                <button className="primary-btn" type="submit" disabled={deleteAnime.isPending} style={{ background: 'linear-gradient(135deg,#ef4444,#dc2626)' }}>
+                  {deleteAnime.isPending ? 'Suppression…' : 'Confirmer la suppression'}
+                </button>
+                <button className="secondary-btn" type="button" onClick={() => setTargetAnime(null)}>Annuler</button>
+              </div>
+            </form>
+          ) : null}
+        </div>
+      ) : null}
+
+      {/* ── SOURCES ────────────────────────────────────────────── */}
+      {activeTab === 'sources' ? (
+        <div className="admin-section">
+          <h2>Ajouter des sources</h2>
+          <p style={{ color: 'var(--color-text-muted)' }}>
+            Sélectionne un animé dans la liste ci-dessous, puis configure le template d'URL.
+          </p>
+
+          {/* Sélecteur anime */}
+          {!sourceAnime ? (
+            <div className="admin-anime-list">
+              {animes.map((anime) => (
+                <div key={anime.id} className="admin-anime-row surface-panel" style={{ cursor: 'pointer' }} onClick={() => setSourceAnime(anime)}>
+                  <img src={anime.poster_url} alt={anime.title} className="admin-anime-thumb" />
+                  <div className="admin-anime-info">
+                    <strong>{anime.title}</strong>
+                    {anime.genre ? <span style={{ color: 'var(--color-text-muted)', fontSize: 13 }}>{anime.genre}</span> : null}
+                  </div>
+                  <button className="secondary-btn" type="button">Configurer</button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <form onSubmit={(e) => void handleAddSource(e)} className="surface-panel admin-form">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+                <img src={sourceAnime.poster_url} alt={sourceAnime.title} style={{ width: 48, borderRadius: 10 }} />
+                <div>
+                  <strong>{sourceAnime.title}</strong>
+                  <button type="button" className="secondary-btn" style={{ marginLeft: 12, padding: '6px 12px', fontSize: 13 }} onClick={() => setSourceAnime(null)}>Changer</button>
+                </div>
+              </div>
+
+              <label style={{ fontSize: 13, fontWeight: 900, color: 'rgba(255,255,255,.7)' }}>URL modèle</label>
+              <input
+                className="input-field"
+                value={sourceTemplate}
+                onChange={(e) => setSourceTemplate(e.target.value)}
+                placeholder="https://cdn.ex.com/ep-{ep2}.mp4 ou URL directe EP1"
+                required
+              />
+              <p style={{ color: 'var(--color-text-muted)', fontSize: 12, margin: '4px 0 12px' }}>
+                Variables : <code style={{ background: 'rgba(255,255,255,.08)', padding: '2px 6px', borderRadius: 6 }}>{'{episode}'}</code> → 1,2,3… | <code style={{ background: 'rgba(255,255,255,.08)', padding: '2px 6px', borderRadius: 6 }}>{'{ep2}'}</code> → 01,02,03…
+              </p>
+
+              <div style={{ display: 'grid', gap: 12, gridTemplateColumns: '1fr 1fr' }}>
+                <div>
+                  <label style={{ fontSize: 13, fontWeight: 900, color: 'rgba(255,255,255,.7)' }}>Langue</label>
+                  <select className="input-field" value={sourceLanguage} onChange={(e) => setSourceLanguage(e.target.value)}>
+                    <option>VOSTFR</option>
+                    <option>VF</option>
+                    <option>VF/VOSTFR</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={{ fontSize: 13, fontWeight: 900, color: 'rgba(255,255,255,.7)' }}>Qualité</label>
+                  <select className="input-field" value={sourceQuality} onChange={(e) => setSourceQuality(e.target.value)}>
+                    <option>HD</option>
+                    <option>1080p</option>
+                    <option>720p</option>
+                    <option>SD</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: 12, marginTop: 16 }}>
+                <button className="primary-btn" type="submit" disabled={addSource.isPending}>
+                  {addSource.isPending ? 'Ajout en cours…' : 'Générer les sources'}
+                </button>
+                <button className="secondary-btn" type="button" onClick={() => setSourceAnime(null)}>Annuler</button>
+              </div>
+            </form>
+          )}
+        </div>
+      ) : null}
+
+      {/* ── NOTIFICATIONS ──────────────────────────────────────── */}
+      {activeTab === 'notifications' ? (
+        <div className="admin-section">
+          <h2>Envoyer une notification globale</h2>
+          <p style={{ color: 'var(--color-text-muted)' }}>
+            Ce message sera envoyé à tous les utilisateurs enregistrés.
+          </p>
+          <form onSubmit={(e) => void handleSendNotif(e)} className="surface-panel admin-form">
+            <label style={{ fontSize: 13, fontWeight: 900, color: 'rgba(255,255,255,.7)' }}>Titre</label>
+            <input
+              className="input-field"
+              value={notifTitle}
+              onChange={(e) => setNotifTitle(e.target.value)}
+              placeholder="Ex: Nouvelle fonctionnalité disponible !"
+              required
+            />
+            <label style={{ fontSize: 13, fontWeight: 900, color: 'rgba(255,255,255,.7)' }}>Message</label>
+            <textarea
+              className="input-field"
+              value={notifMessage}
+              onChange={(e) => setNotifMessage(e.target.value)}
+              placeholder="Détails du message…"
+              rows={4}
+              required
+            />
+            <button className="primary-btn" type="submit" disabled={sendNotif.isPending}>
+              {sendNotif.isPending ? 'Envoi…' : '📢 Envoyer à tous'}
+            </button>
+          </form>
+        </div>
+      ) : null}
+
+      {/* ── MODÉRATION ─────────────────────────────────────────── */}
+      {activeTab === 'moderation' ? (
+        <div className="admin-section">
+          <h2>Utilisateurs ({profiles.length})</h2>
+          {profilesLoading ? <p>Chargement…</p> : null}
+          <div className="admin-users-list">
+            {profiles.map((profile) => (
+              <div key={profile.id} className="surface-panel admin-user-row">
+                <div>
+                  <strong>{profile.username}</strong>
+                  <p style={{ color: 'var(--color-text-muted)', margin: '4px 0 0', fontSize: 13 }}>{profile.email}</p>
+                </div>
+                <span
+                  className="admin-role-badge"
+                  style={{
+                    background: profile.role === 'admin' ? 'rgba(124,92,255,.2)' : 'rgba(255,255,255,.06)',
+                    color: profile.role === 'admin' ? 'var(--color-accent-hi)' : 'var(--color-text-muted)',
+                  }}
+                >
+                  {profile.role}
+                </span>
+              </div>
             ))}
           </div>
-        </section>
-      </div>
-
-      {sourceAnime ? (
-        <form onSubmit={addSourcePack} className="surface-panel" style={{ marginTop: 24 }}>
-          <p style={{ color: 'var(--color-accent-hi)', fontWeight: 900, margin: 0 }}>SOURCE PACK</p>
-          <h2>Préparer les épisodes de « {sourceAnime.title} »</h2>
-          <input className="input-field" value={sourceTemplate} onChange={(event) => setSourceTemplate(event.target.value)} placeholder="URL directe ou modèle avec {episode} / {ep2}" required />
-          <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', marginTop: 12 }}>
-            <select className="input-field" value={sourceLanguage} onChange={(event) => setSourceLanguage(event.target.value)}>
-              <option>VOSTFR</option>
-              <option>VF</option>
-              <option>VF/VOSTFR</option>
-            </select>
-            <select className="input-field" value={sourceQuality} onChange={(event) => setSourceQuality(event.target.value)}>
-              <option>HD</option>
-              <option>1080p</option>
-              <option>720p</option>
-              <option>SD</option>
-            </select>
-          </div>
-          <div style={{ display: 'flex', gap: 12, marginTop: 12, flexWrap: 'wrap' }}>
-            <button className="primary-btn" type="submit" disabled={loadingAction}>{loadingAction ? 'Préparation...' : 'Préparer les épisodes'}</button>
-            <button className="secondary-btn" type="button" onClick={() => setSourceAnime(null)}>Annuler</button>
-          </div>
-        </form>
+        </div>
       ) : null}
-
-      {targetAnime ? (
-        <form onSubmit={deleteAnime} className="surface-panel" style={{ marginTop: 24 }}>
-          <h2>Supprimer « {targetAnime.title} »</h2>
-          <textarea className="input-field" value={reason} onChange={(event) => setReason(event.target.value)} placeholder="Raison obligatoire" required rows={4} />
-          <div style={{ display: 'flex', gap: 12, marginTop: 12, flexWrap: 'wrap' }}>
-            <button className="primary-btn" type="submit" disabled={loadingAction}>{loadingAction ? 'Suppression...' : 'Confirmer la suppression'}</button>
-            <button className="secondary-btn" type="button" onClick={() => setTargetAnime(null)}>Annuler</button>
-          </div>
-        </form>
-      ) : null}
-    </section>
+    </main>
   )
 }

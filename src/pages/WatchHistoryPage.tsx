@@ -1,78 +1,89 @@
 import { Link } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
-import { supabase } from '@/services/supabaseClient'
+import { Clock } from 'lucide-react'
+import { useWatchHistory } from '@/features/watch/hooks/useWatchHistory'
+import { getHistoryAnime } from '@/features/watch/api/watchHistory'
+import { ROUTES } from '@/app/routes'
 
-type HistoryAnime = {
-  id: string
-  title: string
-  poster_url: string
-  genre: string | null
-  watch_url: string
-}
-
-type HistoryRow = {
-  id: string
-  last_watched_at: string
-  animes?: HistoryAnime | HistoryAnime[] | null
-}
-
-function getHistoryAnime(animes: HistoryRow['animes']) {
-  return Array.isArray(animes) ? animes[0] : animes
-}
-
-async function fetchHistory(): Promise<HistoryRow[]> {
-  const { data: authData } = await supabase.auth.getUser()
-  const userId = authData.user?.id
-  if (!userId) return []
-
-  const { data, error } = await supabase
-    .from('watch_history')
-    .select('id,last_watched_at,animes(id,title,poster_url,genre,watch_url)')
-    .eq('user_id', userId)
-    .order('last_watched_at', { ascending: false })
-
-  if (error) throw error
-  return (data ?? []) as unknown as HistoryRow[]
+function timeAgo(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime()
+  const mins = Math.floor(diff / 60000)
+  if (mins < 1) return "À l'instant"
+  if (mins < 60) return `Il y a ${mins} min`
+  const hours = Math.floor(mins / 60)
+  if (hours < 24) return `Il y a ${hours}h`
+  const days = Math.floor(hours / 24)
+  if (days < 7) return `Il y a ${days}j`
+  return new Date(dateStr).toLocaleDateString('fr-FR')
 }
 
 export function WatchHistoryPage() {
-  const { data: history = [], isLoading, error } = useQuery({ queryKey: ['watch-history'], queryFn: fetchHistory })
+  const { data: history = [], isLoading, error } = useWatchHistory()
 
   return (
     <main>
       <div className="surface-panel" style={{ marginBottom: 24 }}>
-        <p style={{ color: 'var(--color-accent-hi)', fontWeight: 900, margin: 0 }}>REPRISE</p>
-        <h1 style={{ fontSize: 'clamp(2rem, 5vw, 4.5rem)', lineHeight: 1, margin: '12px 0' }}>Continuer à regarder</h1>
-        <p style={{ color: 'var(--color-text-muted)', fontSize: 18 }}>Retrouve les animés que tu as ouverts récemment.</p>
+        <p className="eyebrow" style={{ margin: 0 }}>REPRISE</p>
+        <h1>Continuer à regarder</h1>
+        <p style={{ color: 'var(--color-text-muted)', margin: 0 }}>
+          Retrouve les animés que tu as ouverts récemment.
+        </p>
       </div>
 
-      {isLoading ? <p>Chargement...</p> : null}
-      {error ? <p>Impossible de charger l’historique.</p> : null}
-      {!isLoading && history.length === 0 ? <p>Aucun historique pour le moment.</p> : null}
+      {isLoading ? (
+        <div className="card-grid">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="anime-card" style={{ minHeight: 300, opacity: .55, background: 'rgba(255,255,255,.04)' }} aria-hidden="true" />
+          ))}
+        </div>
+      ) : null}
 
-      <div className="card-grid">
-        {history.map((item) => {
-          const anime = getHistoryAnime(item.animes)
-          if (!anime) return null
+      {error ? (
+        <div className="surface-panel empty-state">
+          <div className="empty-state-icon">⚠️</div>
+          <h2>Impossible de charger l'historique</h2>
+        </div>
+      ) : null}
 
-          return (
-            <article key={item.id} className="anime-card">
-              <Link to={`/anime/${anime.id}`} style={{ textDecoration: 'none' }}>
-                <img src={anime.poster_url} alt={anime.title} />
-              </Link>
-              <div style={{ padding: 16 }}>
-                <h2 style={{ fontSize: 20, marginTop: 0 }}>{anime.title}</h2>
-                {anime.genre ? <p style={{ color: 'var(--color-text-muted)' }}>{anime.genre}</p> : null}
-                <p style={{ color: 'var(--color-text-muted)', fontSize: 13 }}>Dernier visionnage : {new Date(item.last_watched_at).toLocaleString()}</p>
-                <div style={{ display: 'grid', gap: 10 }}>
-                  <Link className="secondary-btn" to={`/anime/${anime.id}`} style={{ textAlign: 'center', textDecoration: 'none' }}>Voir la fiche</Link>
-                  <a className="primary-btn" href={anime.watch_url} target="_blank" rel="noreferrer" style={{ textAlign: 'center', textDecoration: 'none' }}>Reprendre</a>
+      {!isLoading && !error && history.length === 0 ? (
+        <div className="surface-panel empty-state">
+          <div className="empty-state-icon"><Clock size={42} /></div>
+          <h2>Aucun historique</h2>
+          <p style={{ color: 'var(--color-text-muted)' }}>
+            Lance un anime depuis la bibliothèque pour commencer ton historique.
+          </p>
+          <Link className="primary-btn" to={ROUTES.LIBRARY} style={{ justifySelf: 'center' }}>
+            Explorer la bibliothèque
+          </Link>
+        </div>
+      ) : null}
+
+      {!isLoading && !error && history.length > 0 ? (
+        <div className="card-grid">
+          {history.map((item) => {
+            const anime = getHistoryAnime(item.animes)
+            if (!anime) return null
+            return (
+              <article key={item.id} className="anime-card">
+                <Link to={ROUTES.ANIME_DETAIL(anime.id)}>
+                  <img src={anime.poster_url} alt={anime.title} loading="lazy" />
+                </Link>
+                <div style={{ padding: 16, display: 'grid', gap: 8 }}>
+                  <h2 style={{ fontSize: 18, margin: 0 }}>{anime.title}</h2>
+                  {anime.genre ? <p style={{ color: 'var(--color-text-muted)', margin: 0, fontSize: 13 }}>{anime.genre}</p> : null}
+                  <p style={{ color: 'var(--color-text-muted)', fontSize: 12, margin: 0, display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <Clock size={12} />
+                    {timeAgo(item.last_watched_at)}
+                  </p>
+                  <div style={{ display: 'grid', gap: 8, marginTop: 4 }}>
+                    <Link className="primary-btn" to={ROUTES.WATCH(anime.id)}>▶ Reprendre</Link>
+                    <Link className="secondary-btn" to={ROUTES.ANIME_DETAIL(anime.id)}>Voir la fiche</Link>
+                  </div>
                 </div>
-              </div>
-            </article>
-          )
-        })}
-      </div>
+              </article>
+            )
+          })}
+        </div>
+      ) : null}
     </main>
   )
 }

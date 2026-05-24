@@ -44,7 +44,7 @@ export function AnimeSpotlightCard({ anime, index = 0 }: AnimeSpotlightCardProps
   )
 }
 
-export function CommunityAnimeCard({ anime, compact = false }: { anime: { id: string; title: string; genre: string | null; poster_url: string; watch_url: string }; compact?: boolean }) {
+export function CommunityAnimeCard({ anime, compact = false }: { anime: { id: string; title: string; genre: string | null; poster_url: string; watch_url: string | null }; compact?: boolean }) {
   return (
     <article className="anime-card anime-tile spotlight-card community-card">
       <Link to={`/anime/${anime.id}`} className="spotlight-poster-wrap">

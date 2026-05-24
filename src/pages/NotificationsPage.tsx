@@ -1,63 +1,131 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { supabase } from '@/services/supabaseClient'
+import { Bell, BellOff, CheckCheck } from 'lucide-react'
+import { useNotifications, useMarkRead, useMarkAllRead } from '@/features/notifications/hooks/useNotifications'
 
-type NotificationRow = {
-  id: string
-  title: string
-  message: string
-  reason: string | null
-  read: boolean
-  created_at: string
+const DEFAULT_TYPE = { label: 'Notification', color: '#9999a8' }
+
+const TYPE_LABELS: Record<string, { label: string; color: string }> = {
+  moderation: { label: 'Modération', color: '#ef4444' },
+  global: { label: 'Annonce', color: '#7c5cff' },
+  info: { label: 'Info', color: '#3b82f6' },
 }
 
-async function fetchNotifications(): Promise<NotificationRow[]> {
-  const { data: authData } = await supabase.auth.getUser()
-  const userId = authData.user?.id
+function getTypeMeta(type: string): { label: string; color: string } {
+  return TYPE_LABELS[type] ?? DEFAULT_TYPE
+}
 
-  if (!userId) return []
-
-  const { data, error } = await supabase
-    .from('notifications')
-    .select('id,title,message,reason,read,created_at')
-    .eq('user_id', userId)
-    .order('created_at', { ascending: false })
-
-  if (error) throw error
-  return data ?? []
+function timeAgo(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime()
+  const mins = Math.floor(diff / 60000)
+  if (mins < 1) return "À l'instant"
+  if (mins < 60) return `Il y a ${mins} min`
+  const hours = Math.floor(mins / 60)
+  if (hours < 24) return `Il y a ${hours}h`
+  const days = Math.floor(hours / 24)
+  if (days < 7) return `Il y a ${days}j`
+  return new Date(dateStr).toLocaleDateString('fr-FR')
 }
 
 export function NotificationsPage() {
-  const queryClient = useQueryClient()
-  const { data: notifications = [], isLoading, error } = useQuery({
-    queryKey: ['notifications'],
-    queryFn: fetchNotifications,
-  })
+  const { data: notifications = [], isLoading, error } = useNotifications()
+  const markRead = useMarkRead()
+  const markAllRead = useMarkAllRead()
 
-  async function markAsRead(id: string) {
-    const readPayload = { read: true }
-    await supabase.from('notifications').update(readPayload).eq('id', id)
-    await queryClient.invalidateQueries({ queryKey: ['notifications'] })
-  }
+  const unreadCount = notifications.filter((n) => !n.read).length
 
   return (
-    <main>
-      <h1>Notifications</h1>
-      <p>Messages envoyés par l’administration.</p>
-      {isLoading ? <p>Chargement...</p> : null}
-      {error ? <p>Impossible de charger les notifications.</p> : null}
-      {!isLoading && notifications.length === 0 ? <p>Aucune notification pour le moment.</p> : null}
-
-      <div style={{ display: 'grid', gap: 12 }}>
-        {notifications.map((notification) => (
-          <article key={notification.id} style={{ border: '1px solid var(--color-border)', borderRadius: 16, padding: 16, background: notification.read ? 'var(--color-surface)' : 'var(--color-surface-hi)' }}>
-            <h2>{notification.title}</h2>
-            <p>{notification.message}</p>
-            {notification.reason ? <p>Raison : {notification.reason}</p> : null}
-            <small>{new Date(notification.created_at).toLocaleString()}</small>
-            {!notification.read ? <button type="button" onClick={() => void markAsRead(notification.id)}>Marquer comme lu</button> : null}
-          </article>
-        ))}
+    <main className="notif-page">
+      {/* Header */}
+      <div className="surface-panel notif-header">
+        <div className="notif-header-left">
+          <p className="eyebrow" style={{ margin: 0 }}>INBOX</p>
+          <h1>Notifications</h1>
+          <p style={{ color: 'var(--color-text-muted)', margin: 0 }}>
+            Messages envoyés par l'administration et la modération.
+          </p>
+        </div>
+        {unreadCount > 0 ? (
+          <button
+            className="secondary-btn"
+            type="button"
+            onClick={() => void markAllRead.mutateAsync(undefined)}
+            disabled={markAllRead.isPending}
+          >
+            <CheckCheck size={16} />
+            {markAllRead.isPending ? 'En cours…' : `Tout marquer lu (${unreadCount})`}
+          </button>
+        ) : null}
       </div>
+
+      {/* Loading */}
+      {isLoading ? (
+        <div className="notif-list">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="notif-item notif-item--skeleton" aria-hidden="true">
+              <div className="skeleton-line" style={{ width: '40%', height: 14 }} />
+              <div className="skeleton-line" style={{ width: '80%', height: 12, marginTop: 8 }} />
+              <div className="skeleton-line" style={{ width: '60%', height: 12, marginTop: 6 }} />
+            </div>
+          ))}
+        </div>
+      ) : null}
+
+      {/* Error */}
+      {error ? (
+        <div className="surface-panel empty-state">
+          <div className="empty-state-icon">⚠️</div>
+          <h2>Impossible de charger les notifications</h2>
+        </div>
+      ) : null}
+
+      {/* Empty */}
+      {!isLoading && !error && notifications.length === 0 ? (
+        <div className="surface-panel empty-state">
+          <div className="empty-state-icon"><BellOff size={42} /></div>
+          <h2>Aucune notification</h2>
+          <p style={{ color: 'var(--color-text-muted)' }}>
+            Tu es à jour. Les messages de modération et les annonces apparaîtront ici.
+          </p>
+        </div>
+      ) : null}
+
+      {/* List */}
+      {!isLoading && !error && notifications.length > 0 ? (
+        <div className="notif-list">
+          {notifications.map((notif) => {
+            const meta = getTypeMeta(notif.type)
+            return (
+              <article
+                key={notif.id}
+                className={`notif-item${notif.read ? '' : ' notif-item--unread'}`}
+              >
+                <div className="notif-item-head">
+                  <span className="notif-type-badge" style={{ background: `${meta.color}22`, color: meta.color }}>
+                    {meta.label}
+                  </span>
+                  <span className="notif-time">{timeAgo(notif.created_at)}</span>
+                  {!notif.read ? <span className="notif-unread-dot" aria-label="Non lu" /> : null}
+                </div>
+                <h3 className="notif-title">{notif.title}</h3>
+                <p className="notif-message">{notif.message}</p>
+                {notif.reason ? (
+                  <p className="notif-reason">Raison : {notif.reason}</p>
+                ) : null}
+                {!notif.read ? (
+                  <button
+                    className="secondary-btn notif-read-btn"
+                    type="button"
+                    onClick={() => void markRead.mutateAsync(notif.id)}
+                    disabled={markRead.isPending}
+                  >
+                    <Bell size={14} />
+                    Marquer comme lu
+                  </button>
+                ) : null}
+              </article>
+            )
+          })}
+        </div>
+      ) : null}
     </main>
   )
 }

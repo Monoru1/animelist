@@ -1,87 +1,84 @@
 import { Link } from 'react-router-dom'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { supabase } from '@/services/supabaseClient'
-
-type AnimeRow = {
-  id: string
-  title: string
-  poster_url: string
-  watch_url: string
-  genre: string | null
-  created_at: string
-}
-
-async function fetchMyAnimes(): Promise<AnimeRow[]> {
-  const { data: authData } = await supabase.auth.getUser()
-  const userId = authData.user?.id
-
-  if (!userId) return []
-
-  const { data, error } = await supabase
-    .from('animes')
-    .select('id,title,poster_url,watch_url,genre,created_at')
-    .eq('user_id', userId)
-    .order('created_at', { ascending: false })
-
-  if (error) throw error
-  return data ?? []
-}
+import { ListVideo } from 'lucide-react'
+import { useMyAnimes, useDeleteAnime } from '@/features/library/hooks/useAnimes'
+import { ROUTES } from '@/app/routes'
 
 export function MyPlaylistPage() {
-  const queryClient = useQueryClient()
-  const { data: animes = [], isLoading, error } = useQuery({ queryKey: ['my-animes'], queryFn: fetchMyAnimes })
+  const { data: animes = [], isLoading, error } = useMyAnimes()
+  const deleteAnime = useDeleteAnime()
 
-  async function deleteAnime(id: string) {
-    const confirmed = window.confirm('Supprimer cet animé de ta playlist publique ?')
+  async function handleDelete(id: string, title: string) {
+    const confirmed = window.confirm(`Supprimer « ${title} » de ta playlist publique ?`)
     if (!confirmed) return
-
-    const { error: deleteError } = await supabase.from('animes').delete().eq('id', id)
-
-    if (deleteError) {
-      alert(deleteError.message)
-      return
-    }
-
-    await queryClient.invalidateQueries({ queryKey: ['my-animes'] })
-    await queryClient.invalidateQueries({ queryKey: ['public-animes'] })
+    await deleteAnime.mutateAsync(id)
   }
 
   return (
     <main>
       <div className="surface-panel" style={{ marginBottom: 24 }}>
-        <p style={{ color: 'var(--color-accent-hi)', fontWeight: 900, margin: 0 }}>MON ESPACE</p>
-        <h1 style={{ fontSize: 'clamp(2rem, 5vw, 4.5rem)', lineHeight: 1, margin: '12px 0' }}>Ma playlist publique</h1>
-        <p style={{ color: 'var(--color-text-muted)', fontSize: 18 }}>Gère les animés que tu as ajoutés à la bibliothèque communautaire.</p>
+        <p className="eyebrow" style={{ margin: 0 }}>MON ESPACE</p>
+        <h1>Ma playlist publique</h1>
+        <p style={{ color: 'var(--color-text-muted)', margin: 0 }}>
+          Gère les animés que tu as ajoutés à la bibliothèque communautaire.
+        </p>
       </div>
 
-      {isLoading ? <p>Chargement...</p> : null}
-      {error ? <p>Impossible de charger ta playlist.</p> : null}
-      {!isLoading && animes.length === 0 ? (
-        <div className="surface-panel">
-          <h2>Ta playlist est vide.</h2>
-          <p style={{ color: 'var(--color-text-muted)' }}>Ajoute ton premier animé pour le partager avec la communauté.</p>
-          <Link className="primary-btn" to="/add" style={{ display: 'inline-block', textDecoration: 'none' }}>Ajouter un animé</Link>
+      {isLoading ? (
+        <div className="card-grid">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="anime-card" style={{ minHeight: 300, opacity: .5, background: 'rgba(255,255,255,.04)' }} aria-hidden="true" />
+          ))}
         </div>
       ) : null}
 
-      <div className="card-grid">
-        {animes.map((anime) => (
-          <article key={anime.id} className="anime-card">
-            <Link to={`/anime/${anime.id}`} style={{ textDecoration: 'none' }}>
-              <img src={anime.poster_url} alt={anime.title} />
-            </Link>
-            <div style={{ padding: 16 }}>
-              <h2 style={{ fontSize: 20, marginTop: 0 }}>{anime.title}</h2>
-              {anime.genre ? <p style={{ color: 'var(--color-text-muted)' }}>{anime.genre}</p> : null}
-              <div style={{ display: 'grid', gap: 10 }}>
-                <Link className="primary-btn" to={`/anime/${anime.id}`} style={{ textAlign: 'center', textDecoration: 'none' }}>Voir la fiche</Link>
-                <a className="secondary-btn" href={anime.watch_url} target="_blank" rel="noreferrer" style={{ textAlign: 'center', textDecoration: 'none' }}>Regarder</a>
-                <button className="secondary-btn" type="button" onClick={() => void deleteAnime(anime.id)}>Supprimer</button>
+      {error ? (
+        <div className="surface-panel empty-state">
+          <div className="empty-state-icon">⚠️</div>
+          <h2>Impossible de charger ta playlist</h2>
+        </div>
+      ) : null}
+
+      {!isLoading && !error && animes.length === 0 ? (
+        <div className="surface-panel empty-state">
+          <div className="empty-state-icon"><ListVideo size={42} /></div>
+          <h2>Ta playlist est vide</h2>
+          <p style={{ color: 'var(--color-text-muted)' }}>
+            Ajoute ton premier animé pour le partager avec la communauté.
+          </p>
+          <Link className="primary-btn" to={ROUTES.ADD} style={{ justifySelf: 'center' }}>
+            Ajouter un anime
+          </Link>
+        </div>
+      ) : null}
+
+      {!isLoading && !error && animes.length > 0 ? (
+        <div className="card-grid">
+          {animes.map((anime) => (
+            <article key={anime.id} className="anime-card">
+              <Link to={ROUTES.ANIME_DETAIL(anime.id)}>
+                <img src={anime.poster_url} alt={anime.title} loading="lazy" />
+              </Link>
+              <div style={{ padding: 16, display: 'grid', gap: 8 }}>
+                <h2 style={{ fontSize: 18, margin: 0 }}>{anime.title}</h2>
+                {anime.genre ? <p style={{ color: 'var(--color-text-muted)', margin: 0, fontSize: 13 }}>{anime.genre}</p> : null}
+                <div style={{ display: 'grid', gap: 8, marginTop: 4 }}>
+                  <Link className="primary-btn" to={ROUTES.WATCH(anime.id)}>▶ Regarder</Link>
+                  <Link className="secondary-btn" to={ROUTES.ANIME_DETAIL(anime.id)}>Voir la fiche</Link>
+                  <button
+                    className="secondary-btn"
+                    type="button"
+                    onClick={() => void handleDelete(anime.id, anime.title)}
+                    disabled={deleteAnime.isPending}
+                    style={{ color: '#ef4444', borderColor: 'rgba(239,68,68,.3)' }}
+                  >
+                    Supprimer
+                  </button>
+                </div>
               </div>
-            </div>
-          </article>
-        ))}
-      </div>
+            </article>
+          ))}
+        </div>
+      ) : null}
     </main>
   )
 }
