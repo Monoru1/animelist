@@ -780,3 +780,77 @@
 
 /* Watch controls right group */
 .watch-controls-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   CHAT — BOTTOM SHEET MOBILE + PANEL DESKTOP
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Desktop panel — intégré dans le layout watch */
+.chat-desktop-panel {
+  display: none;
+}
+.chat-desktop-panel--open {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Bottom sheet mobile — via portal */
+.chat-sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  background: rgba(0,0,0,.55);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: flex-end;
+}
+.chat-sheet {
+  width: 100%;
+  height: clamp(300px, 55vh, 520px);
+  border-radius: 24px 24px 0 0;
+  overflow: hidden;
+  animation: slideUpSheet .25s cubic-bezier(.32,.72,0,1);
+  background: rgba(13,13,20,.98);
+  border-top: 1px solid rgba(255,255,255,.1);
+  display: flex;
+  flex-direction: column;
+}
+@keyframes slideUpSheet {
+  from { transform: translateY(100%) }
+  to   { transform: translateY(0) }
+}
+
+/* À partir de 900px, le chat desktop apparaît dans la colonne droite */
+@media (min-width: 901px) {
+  .chat-sheet-backdrop { display: none !important; }
+  .chat-desktop-panel {
+    display: flex;
+    flex-direction: column;
+    height: 420px;
+    border-radius: 20px;
+    border: 1px solid rgba(255,255,255,.07);
+    background: rgba(19,19,26,.92);
+    overflow: hidden;
+    margin-bottom: 16px;
+  }
+  .chat-desktop-panel:not(.chat-desktop-panel--open) {
+    display: none;
+  }
+}
+/* Sur mobile, le bouton chat toggle est toujours visible */
+.chat-toggle-btn {
+  padding: 8px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,.1);
+  background: rgba(255,255,255,.06);
+  color: white;
+  font-size: 13px;
+  font-weight: 900;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: .15s;
+}
+.chat-toggle-btn.active {
+  background: rgba(124,92,255,.25);
+  border-color: rgba(124,92,255,.4);
+}
