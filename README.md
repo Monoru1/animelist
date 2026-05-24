@@ -49,7 +49,10 @@ Fonctionnalités en place :
 - Historique.
 - Continue watching côté données.
 - Playlist utilisateur.
-- Notifications.
+- Notifications avec badge unread dans la topbar.
+- Topbar desktop premium sticky.
+- Drawer mobile fullscreen.
+- Bottom nav mobile stabilisée.
 - Hero dynamique.
 - Sections anime.
 - Trending anime.
@@ -67,7 +70,33 @@ Fonctionnalités en place :
 - Responsive global renforcé.
 - Overflow horizontal verrouillé.
 - Cards stabilisées sur mobile.
-- Bottom nav mobile avec safe-area.
+- Safe-area mobile.
+
+---
+
+# Navigation
+
+La navigation legacy sidebar a été remplacée par :
+
+## Desktop
+
+- topbar sticky glassmorphism ;
+- logo Animelist à gauche ;
+- navigation centrale ;
+- actions utilisateur à droite ;
+- bouton admin conditionnel ;
+- notifications avec badge ;
+- déconnexion discrète.
+
+## Mobile
+
+- plus de nav horizontale cassée ;
+- topbar compacte ;
+- bouton notifications ;
+- bouton profil ;
+- hamburger ;
+- drawer fullscreen premium ;
+- bottom nav dédiée : Accueil, Continuer, Favoris, Ajouter, Profil.
 
 ---
 
@@ -187,6 +216,8 @@ Dernier durcissement responsive :
 - textes clampés ;
 - auth responsive ;
 - WatchPlayer mobile amélioré ;
+- topbar mobile compacte ;
+- drawer mobile ;
 - boutons full-width sur petit mobile ;
 - bottom nav avec safe-area ;
 - grilles mobile sécurisées.
