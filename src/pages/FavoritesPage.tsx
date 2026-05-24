@@ -61,19 +61,7 @@ export function FavoritesPage() {
           {favorites.map((favorite) => {
             const anime = getFavoriteAnime(favorite.animes)
             if (!anime) return null
-
-            return (
-              <CommunityAnimeCard
-                key={favorite.id}
-                anime={{
-                  id: anime.id,
-                  title: anime.title,
-                  genre: anime.genre,
-                  poster_url: anime.poster_url,
-                  watch_url: anime.watch_url,
-                }}
-              />
-            )
+            return <CommunityAnimeCard key={favorite.id} anime={anime} />
           })}
         </section>
       ) : null}
