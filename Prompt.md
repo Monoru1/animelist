@@ -42,7 +42,7 @@ Déploiement :
 
 ## Règles critiques
 
-1. Toujours garder README.md et Prompt.md à jour après une grosse modification.
+1. Toujours garder README.md et Prompt.md à jour après chaque évolution importante.
 2. Ne jamais changer `package.json` sans synchroniser `pnpm-lock.yaml`.
 3. Netlify utilise frozen lockfile.
 4. Toujours penser mobile-first.
@@ -52,7 +52,8 @@ Déploiement :
 8. Le player ne doit pas ressembler à un panneau admin.
 9. Les formulaires source doivent être déplacés dans `/admin`.
 10. Toujours prévoir des fallbacks d’image.
-11. Ne pas contourner DRM/paywalls/protections externes.
+11. Toujours commit les mises à jour mémoire projet.
+12. Ne pas contourner DRM/paywalls/protections externes.
 
 ## État actuel
 
@@ -85,6 +86,31 @@ Déploiement :
 - Anime detail cinematic.
 - Spotlight cards.
 - Community cards.
+- Topbar desktop premium.
+- Drawer mobile fullscreen.
+- Notifications badge.
+- Navigation modernisée.
+
+## Navigation actuelle
+
+### Desktop
+
+- topbar sticky glassmorphism ;
+- logo Animelist ;
+- nav centrale ;
+- actions utilisateur ;
+- bouton admin conditionnel ;
+- notifications unread.
+
+### Mobile
+
+- topbar compacte ;
+- hamburger ;
+- drawer fullscreen ;
+- bottom nav ;
+- safe-area iOS/Android.
+
+La sidebar legacy ne doit plus être utilisée.
 
 ## WatchPlayer actuel
 
@@ -164,8 +190,9 @@ Le site doit ressembler à une vraie app streaming.
 
 ### Priorités
 
+- topbar premium ;
+- drawer mobile ;
 - bottom nav ;
-- top bar compacte ;
 - spacing tablette ;
 - hero responsive ;
 - cards immersives ;
@@ -181,7 +208,9 @@ Le site doit ressembler à une vraie app streaming.
 - player mobile amélioré ;
 - safe-area iOS/Android ;
 - grilles sécurisées ;
-- boutons full-width mobile.
+- boutons full-width mobile ;
+- topbar responsive ;
+- drawer responsive.
 
 ## Pages importantes
 
@@ -233,6 +262,7 @@ Le site doit ressembler à une vraie app streaming.
 8. Stabilisation WatchPlayer.
 9. Import metadata massif.
 10. Responsive finalisation.
+11. Navigation premium.
 
 ## Ton attendu
 
