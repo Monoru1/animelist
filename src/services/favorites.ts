@@ -5,53 +5,75 @@ export type FavoriteAnime = {
   title: string
   poster_url: string
   genre: string | null
-  watch_url: string
+  watch_url: string | null
 }
 
 export type FavoriteRow = {
   id: string
   created_at: string
   anime_id: string
-  animes?: FavoriteAnime | FavoriteAnime[] | null
+  anime: FavoriteAnime | null
 }
 
-export function getFavoriteAnime(animes: FavoriteRow['animes']) {
-  return Array.isArray(animes) ? animes[0] : animes
+export function getFavoriteAnime(row: FavoriteRow): FavoriteAnime | null {
+  return row.anime ?? null
 }
 
-export async function getCurrentUserId() {
+async function getUserId(): Promise<string | null> {
   const { data } = await supabase.auth.getUser()
   return data.user?.id ?? null
 }
 
+// Fetch en 2 étapes pour éviter les erreurs de foreign key Supabase
 export async function fetchFavorites(): Promise<FavoriteRow[]> {
-  const userId = await getCurrentUserId()
+  const userId = await getUserId()
   if (!userId) return []
 
-  const { data, error } = await supabase
+  // Étape 1 : récupérer les favoris
+  const { data: favRows, error: favError } = await supabase
     .from('favorites')
-    .select('id,created_at,anime_id,animes(id,title,poster_url,genre,watch_url)')
+    .select('id,created_at,anime_id')
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
 
-  if (error) throw error
-  return (data ?? []) as unknown as FavoriteRow[]
+  if (favError) {
+    // Table favorites inexistante ou RLS — retourner [] silencieusement
+    console.warn('[favorites] fetch error:', favError.message)
+    return []
+  }
+  if (!favRows || favRows.length === 0) return []
+
+  // Étape 2 : récupérer les animes correspondants
+  const animeIds = favRows.map((r) => r.anime_id)
+  const { data: animes } = await supabase
+    .from('animes')
+    .select('id,title,poster_url,genre,watch_url')
+    .in('id', animeIds)
+
+  const animeMap = new Map((animes ?? []).map((a) => [a.id, a as FavoriteAnime]))
+
+  return favRows.map((row) => ({
+    id: row.id,
+    created_at: row.created_at,
+    anime_id: row.anime_id,
+    anime: animeMap.get(row.anime_id) ?? null,
+  }))
 }
 
-export async function addFavorite(animeId: string) {
-  const userId = await getCurrentUserId()
-  if (!userId) throw new Error('Session introuvable.')
+export async function addFavorite(animeId: string): Promise<void> {
+  const userId = await getUserId()
+  if (!userId) throw new Error('Non connecté.')
 
   const { error } = await supabase
     .from('favorites')
     .upsert({ user_id: userId, anime_id: animeId }, { onConflict: 'user_id,anime_id' })
 
-  if (error) throw error
+  if (error) throw new Error(error.message)
 }
 
-export async function removeFavorite(animeId: string) {
-  const userId = await getCurrentUserId()
-  if (!userId) throw new Error('Session introuvable.')
+export async function removeFavorite(animeId: string): Promise<void> {
+  const userId = await getUserId()
+  if (!userId) throw new Error('Non connecté.')
 
   const { error } = await supabase
     .from('favorites')
@@ -59,11 +81,11 @@ export async function removeFavorite(animeId: string) {
     .eq('user_id', userId)
     .eq('anime_id', animeId)
 
-  if (error) throw error
+  if (error) throw new Error(error.message)
 }
 
-export async function isFavorite(animeId: string) {
-  const userId = await getCurrentUserId()
+export async function isFavorite(animeId: string): Promise<boolean> {
+  const userId = await getUserId()
   if (!userId) return false
 
   const { data, error } = await supabase
@@ -73,6 +95,6 @@ export async function isFavorite(animeId: string) {
     .eq('anime_id', animeId)
     .maybeSingle()
 
-  if (error) throw error
+  if (error) return false
   return Boolean(data)
 }

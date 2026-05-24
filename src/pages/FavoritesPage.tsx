@@ -1,69 +1,102 @@
 import { Link } from 'react-router-dom'
 import { Heart } from 'lucide-react'
-import { CommunityAnimeCard } from '@/components/anime/AnimeSpotlightCard'
-import { getFavoriteAnime, useFavorites } from '@/hooks/useFavorites'
+import { useFavorites, useToggleFavorite, getFavoriteAnime } from '@/hooks/useFavorites'
+import { ROUTES } from '@/app/routes'
+
+function FavoriteCard({ row }: { row: import('@/services/favorites').FavoriteRow }) {
+  const anime = getFavoriteAnime(row)
+  const toggle = useToggleFavorite(row.anime_id)
+
+  if (!anime) return null
+
+  return (
+    <article className="anime-card">
+      <Link to={ROUTES.ANIME_DETAIL(anime.id)}>
+        <img src={anime.poster_url} alt={anime.title} loading="lazy" />
+      </Link>
+      <div style={{ padding: 14, display: 'grid', gap: 8 }}>
+        <h3 style={{ margin: 0, fontSize: 16 }}>{anime.title}</h3>
+        {anime.genre ? <p style={{ color: 'var(--color-text-muted)', margin: 0, fontSize: 13 }}>{anime.genre}</p> : null}
+        <div style={{ display: 'grid', gap: 7 }}>
+          <Link className="primary-btn" to={ROUTES.WATCH(anime.id)}>▶ Regarder</Link>
+          <Link className="secondary-btn" to={ROUTES.ANIME_DETAIL(anime.id)}>Voir la fiche</Link>
+          <button
+            className="secondary-btn"
+            type="button"
+            onClick={() => void toggle.mutateAsync(false)}
+            disabled={toggle.isPending}
+            style={{ color: '#ef4444', borderColor: 'rgba(239,68,68,.25)' }}
+          >
+            {toggle.isPending ? '…' : '♥ Retirer des favoris'}
+          </button>
+        </div>
+      </div>
+    </article>
+  )
+}
 
 export function FavoritesPage() {
-  const { data: favorites = [], isLoading, isError, refetch } = useFavorites()
+  const { data: favorites, isLoading, isError, refetch } = useFavorites()
+
+  const validFavorites = (favorites ?? []).filter((row) => getFavoriteAnime(row) !== null)
 
   return (
     <main>
       <section className="surface-panel" style={{ marginBottom: 24 }}>
         <p className="eyebrow" style={{ margin: 0 }}>COLLECTION</p>
-        <h1 style={{ fontSize: 'clamp(2.5rem, 7vw, 5rem)', lineHeight: .95, margin: '12px 0' }}>Mes favoris</h1>
-        <p style={{ color: 'var(--color-text-muted)', maxWidth: 780, lineHeight: 1.7 }}>
-          Retrouve tous les animés que tu as sauvegardés pour continuer ton aventure Anime OS.
+        <h1 style={{ fontSize: 'clamp(2.2rem,6vw,4.5rem)', lineHeight: .95, margin: '10px 0' }}>
+          Mes favoris
+        </h1>
+        <p style={{ color: 'var(--color-text-muted)', margin: 0 }}>
+          Tous les animés que tu as sauvegardés.
+          {!isLoading && validFavorites.length > 0 ? ` (${validFavorites.length})` : ''}
         </p>
       </section>
 
+      {/* Loading */}
       {isLoading ? (
-        <section className="card-grid">
-          {Array.from({ length: 8 }).map((_, index) => (
-            <div key={index} className="anime-card" style={{ minHeight: 360, opacity: .55, background: 'linear-gradient(135deg, rgba(255,255,255,.08), rgba(255,255,255,.02))' }} />
+        <div className="card-grid">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="anime-card" style={{ minHeight: 320, opacity: .4, background: 'rgba(255,255,255,.04)' }} aria-hidden="true" />
           ))}
-        </section>
+        </div>
       ) : null}
 
+      {/* Erreur réseau */}
       {isError ? (
-        <section className="surface-panel" style={{ textAlign: 'center', display: 'grid', gap: 18 }}>
-          <div style={{ fontSize: 48 }}>⚠️</div>
-          <div>
-            <h2 style={{ marginTop: 0 }}>Impossible de charger les favoris</h2>
-            <p style={{ color: 'var(--color-text-muted)' }}>
-              Une désynchronisation temporaire est survenue. Réessaie maintenant.
-            </p>
-          </div>
-          <button className="primary-btn" type="button" onClick={() => void refetch()}>
+        <div className="surface-panel empty-state">
+          <div className="empty-state-icon">⚠️</div>
+          <h2>Impossible de charger les favoris</h2>
+          <p style={{ color: 'var(--color-text-muted)' }}>
+            Vérifie ta connexion ou réessaie dans quelques secondes.
+          </p>
+          <button className="primary-btn" type="button" onClick={() => void refetch()} style={{ justifySelf: 'center' }}>
             Réessayer
           </button>
-        </section>
+        </div>
       ) : null}
 
-      {!isLoading && !isError && favorites.length === 0 ? (
-        <section className="surface-panel" style={{ textAlign: 'center', display: 'grid', gap: 18 }}>
-          <div style={{ display: 'grid', placeItems: 'center', width: 90, height: 90, borderRadius: '50%', margin: '0 auto', background: 'rgba(124,92,255,.18)' }}>
-            <Heart size={38} />
-          </div>
-          <div>
-            <h2 style={{ marginTop: 0 }}>Aucun favori pour le moment</h2>
-            <p style={{ color: 'var(--color-text-muted)', maxWidth: 620, margin: '0 auto' }}>
-              Commence à sauvegarder des animés depuis la bibliothèque pour créer ta collection personnalisée.
-            </p>
-          </div>
-          <Link className="primary-btn" to="/library" style={{ justifySelf: 'center' }}>
+      {/* Vide */}
+      {!isLoading && !isError && validFavorites.length === 0 ? (
+        <div className="surface-panel empty-state">
+          <div className="empty-state-icon"><Heart size={40} /></div>
+          <h2>Aucun favori pour le moment</h2>
+          <p style={{ color: 'var(--color-text-muted)' }}>
+            Ajoute des animés depuis la bibliothèque pour les retrouver ici.
+          </p>
+          <Link className="primary-btn" to={ROUTES.LIBRARY} style={{ justifySelf: 'center' }}>
             Explorer la bibliothèque
           </Link>
-        </section>
+        </div>
       ) : null}
 
-      {!isLoading && !isError && favorites.length > 0 ? (
-        <section className="card-grid">
-          {favorites.map((favorite) => {
-            const anime = getFavoriteAnime(favorite.animes)
-            if (!anime) return null
-            return <CommunityAnimeCard key={favorite.id} anime={anime} />
-          })}
-        </section>
+      {/* Liste */}
+      {!isLoading && !isError && validFavorites.length > 0 ? (
+        <div className="card-grid">
+          {validFavorites.map((row) => (
+            <FavoriteCard key={row.id} row={row} />
+          ))}
+        </div>
       ) : null}
     </main>
   )

@@ -124,7 +124,7 @@ export function AdminPage() {
     if (!notifTitle.trim() || !notifMessage.trim()) return
     setFeedback('')
     try {
-      await sendNotif.mutateAsync({ title: notifTitle, message: notifMessage })
+      await sendNotif.mutateAsync({ title: notifTitle, message: notifMessage, type: 'global' })
       setNotifTitle('')
       setNotifMessage('')
       setFeedback('✓ Notification globale envoyée à tous les utilisateurs.')
