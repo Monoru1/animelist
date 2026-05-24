@@ -72,19 +72,17 @@ export function RegisterPage() {
   }
 
   return (
-    <main className="app-shell" style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', padding: 20 }}>
-      <section className="surface-panel" style={{ width: 'min(980px, 96vw)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 28 }}>
-        <div style={{ display: 'grid', alignContent: 'center' }}>
-          <p style={{ color: 'var(--color-accent-hi)', fontWeight: 900, margin: 0 }}>REJOINDRE ANIMELIST</p>
-          <h1 style={{ fontSize: 'clamp(2.4rem, 6vw, 4.8rem)', lineHeight: 1, margin: '14px 0' }}>Crée ta bibliothèque anime.</h1>
-          <p style={{ color: 'var(--color-text-muted)', fontSize: 18, lineHeight: 1.6 }}>
-            Inscris-toi, ajoute tes liens anime, crée tes playlists et partage tes découvertes avec la communauté.
-          </p>
+    <main className="auth-page">
+      <section className="auth-card">
+        <div className="auth-hero">
+          <p className="eyebrow">REJOINDRE ANIMELIST</p>
+          <h1>Construis ton univers anime.</h1>
+          <p>Crée ton compte pour suivre tes épisodes, sauvegarder tes playlists et partager tes découvertes avec la communauté.</p>
         </div>
 
-        <form onSubmit={handleSubmit} style={{ display: 'grid', gap: 14 }}>
+        <form className="auth-form" onSubmit={handleSubmit}>
           <label>Pseudo</label>
-          <input className="input-field" value={username} onChange={(event) => setUsername(event.target.value)} required placeholder="ex: nounours" />
+          <input className="input-field" value={username} onChange={(event) => setUsername(event.target.value)} required placeholder="ex: Ryad" />
 
           <label>Email</label>
           <input className="input-field" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required placeholder="toi@email.com" />
@@ -95,15 +93,11 @@ export function RegisterPage() {
           <label>Confirmer le mot de passe</label>
           <input className="input-field" type="password" minLength={6} value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} required placeholder="Retape ton mot de passe" />
 
-          {errorMessage ? <p style={{ color: '#ff6b6b' }}>{errorMessage}</p> : null}
+          {errorMessage ? <p className="form-error">{errorMessage}</p> : null}
 
-          <button className="primary-btn" type="submit" disabled={loading}>
-            {loading ? 'Création...' : 'Créer mon compte'}
-          </button>
+          <button className="primary-btn" type="submit" disabled={loading}>{loading ? 'Création...' : 'Créer mon compte'}</button>
 
-          <p style={{ color: 'var(--color-text-muted)', textAlign: 'center' }}>
-            Déjà un compte ? <Link to="/login" style={{ color: 'var(--color-accent-hi)', fontWeight: 800 }}>Connexion</Link>
-          </p>
+          <p className="auth-switch">Déjà un compte ? <Link to="/login">Connexion</Link></p>
         </form>
       </section>
     </main>
