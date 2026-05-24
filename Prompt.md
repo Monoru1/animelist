@@ -6,7 +6,14 @@ Tu reprends le projet **Animelist**.
 
 Animelist doit devenir **Anime OS** : une plateforme anime communautaire next-gen inspirée de Netflix, Crunchyroll, AniList, Plex, Apple TV, Steam UI, Active Theory et Kibo Anime.
 
-Ce n’est pas un simple CRUD anime. C’est une app streaming communautaire moderne, mobile-first, immersive, scalable, cinématique, avec playlists, historique, profils, recommandations et lecteur intégré.
+Le projet doit donner une sensation :
+
+- streaming platform ;
+- app mobile native ;
+- expérience cinématique ;
+- consommation anime immédiate.
+
+Ce n’est plus un simple CRUD anime.
 
 ## Stack actuelle
 
@@ -35,111 +42,112 @@ Déploiement :
 
 ## Règles critiques
 
-1. Toujours garder le README à jour après une grosse modification.
-2. Ne pas ajouter de dépendance sans mettre à jour `pnpm-lock.yaml`.
-3. Netlify utilise frozen lockfile : si package.json change sans lockfile, le build casse.
-4. Le site doit rester mobile-first.
-5. Ne pas afficher aux utilisateurs les détails techniques de récupération des animés.
-6. L’utilisateur doit juste voir une vraie plateforme : regarder, ajouter, playlist, favoris, continuer.
-7. Ne jamais laisser de cartes noires sans image : toujours fallback poster.
-8. Le bouton `Regarder` doit ouvrir une page `/watch/:animeId`, pas rediriger brutalement vers une plateforme externe.
-9. Ne pas contourner DRM, protections, paywalls ou systèmes anti-abus. Utiliser uniquement des liens fournis par l’utilisateur, embeds autorisés, HLS légitime ou sources partageables/modérées.
+1. Toujours garder README.md et Prompt.md à jour après une grosse modification.
+2. Ne jamais changer `package.json` sans synchroniser `pnpm-lock.yaml`.
+3. Netlify utilise frozen lockfile.
+4. Toujours penser mobile-first.
+5. Ne jamais exposer aux viewers la logique technique des sources.
+6. Le viewer doit uniquement : regarder, continuer, ajouter, explorer.
+7. Le bouton `Regarder` doit ouvrir `/watch/:animeId`.
+8. Le player ne doit pas ressembler à un panneau admin.
+9. Les formulaires source doivent être déplacés dans `/admin`.
+10. Toujours prévoir des fallbacks d’image.
+11. Ne pas contourner DRM/paywalls/protections externes.
 
 ## État actuel
 
-Fonctionnalités déjà présentes :
+### Déjà présent
+
 - Auth inscription / connexion Supabase.
-- Profils avec pseudo, email, avatar optionnel.
-- Rôles user/admin.
+- Login/Register premium mobile-first.
+- Profils.
+- Rôles admin/user.
 - Bibliothèque publique.
-- Ajout anime depuis titre + lien.
-- Edge Function `anime-metadata` avec AniList + Jikan.
+- Ajout anime.
+- Edge Function `anime-metadata`.
+- Services AniList + Jikan.
 - Favoris.
-- Historique / continuer.
+- Historique.
+- Continue watching côté données.
 - Playlist utilisateur.
-- Admin avec modération.
 - Notifications.
 - Home cinematic initiale.
-- Services `anilist.ts` et `jikan.ts`.
-- Composants `SectionHeader`, `AnimeSpotlightCard`, `CommunityAnimeCard`.
-- Edge Function `anime-catalog-sync`.
-- CSP Netlify élargie pour images/frames/media externes.
-
-## Problèmes actuels à corriger en priorité
-
-1. Watch player à créer : `/watch/:animeId`.
-2. Les boutons `Regarder` doivent pointer vers `/watch/:animeId`.
-3. Mobile à améliorer fortement : plus proche Netflix/Crunchyroll.
-4. Header mobile trop gros : il faut privilégier une bottom nav et une top bar compacte.
-5. Hero à rendre plus propre sur mobile/tablette.
-6. Homepage doit ressembler davantage à Netflix/Crunchyroll : rangées horizontales, posters propres, sections denses.
-7. Les images doivent toujours avoir un fallback visuel.
-8. Ajouter davantage de contenu via APIs et cache Supabase.
-9. Ne pas expliquer aux utilisateurs où/comment les animés sont récupérés.
-10. Créer système scalable : épisodes, sources, langues, qualités, reports.
-
-## Pages cibles
-
-- `/library` : Home streaming principale.
-- `/watch/:animeId` : lecteur intégré.
-- `/anime/:animeId` : fiche anime cinematic.
-- `/favorites` : favoris.
-- `/history` : continuer à regarder.
-- `/my-playlist` : playlist utilisateur.
-- `/profile` : profil utilisateur.
-- `/u/:username` : profil public futur.
-- `/playlists` : playlists publiques futur.
-- `/admin` : admin/modération.
-
-## Inspiration UI
-
-### Netflix
-- Hero large.
-- Continue watching.
-- Rangées horizontales.
-- Progress bars.
-- Lecture immédiate.
+- WatchPlayer interne.
+- Episodes auto-générés.
+- Sidebar épisodes.
+- Labels propres : `VF`, `VOSTFR`, `VF / VOSTFR`.
+- Qualité : HD / 720p / 1080p / SD.
+- Gestion source pack côté admin.
+- Responsive global fortement renforcé.
 - Bottom nav mobile.
+- Safe-area mobile.
+- Overflow-x sécurisé.
+- Anime detail cinematic.
+- Spotlight cards.
+- Community cards.
 
-### Crunchyroll
-- Navigation anime-first.
-- Browse/simulcast/genres.
-- Watchlist.
-- Page compte.
-- Player anime.
-- Orange/accent possible, mais Animelist garde violet/noir.
+## WatchPlayer actuel
 
-### AniList
-- Metadata riches.
-- Scores.
-- Genres.
-- Relations.
-- Recommandations.
-- Communauté.
+Route :
 
-### Kibo Anime
-- Expérience dense.
-- Beaucoup de contenu visible.
-- Catalogue déjà rempli.
-- Player intégré.
-- Homepage vivante.
+```txt
+/watch/:animeId
+```
+
+Le WatchPlayer est maintenant une vraie page viewer.
+
+### Fonctionnalités
+
+- iframe/video intégrés ;
+- sidebar épisodes ;
+- épisode précédent/suivant ;
+- historique ;
+- watch progress ;
+- fallback cinématique ;
+- source switcher propre ;
+- responsive mobile ;
+- dark cinematic UI.
+
+### Important
+
+Le formulaire source a été retiré du player viewer.
+
+La gestion des sources est déplacée dans `/admin`.
+
+## Source Pack Admin
+
+L’admin peut générer des épisodes automatiquement avec :
+
+```txt
+{episode}
+{ep2}
+```
+
+Exemples :
+
+```txt
+https://cdn.exemple.com/anime/episode-{episode}.mp4
+https://cdn.exemple.com/anime/ep-{ep2}.m3u8
+```
+
+Le système crée ensuite les lignes dans `episode_sources`.
 
 ## Architecture streaming cible
 
-Tables futures :
-- `anime_sources`
-- `anime_episodes`
-- `episode_sources`
-- `source_reports`
-- `comments`
-- `reviews`
-- `follows`
-- `playlist_likes`
-- `anime_metadata_cache`
-- `anime_trending_cache`
-- `watch_progress`
+Tables actuelles / prévues :
 
-Structure cible :
+- anime_episodes
+- episode_sources
+- watch_progress
+- source_reports
+- anime_cache
+- streaming_cache
+- comments
+- reviews
+- follows
+- playlist_likes
+
+Architecture cible :
 
 ```txt
 Anime
@@ -150,44 +158,86 @@ Anime
                      └── Source
 ```
 
-## Watch Player cible
+## Responsive direction
 
-Créer une page `/watch/:animeId` avec :
-- lecteur intégré iframe/video.
-- fallback si source impossible.
-- bouton ouvrir source externe seulement en secours.
-- sidebar épisodes.
-- progression.
-- historique.
-- autoplay futur.
-- épisode suivant futur.
-- recommandations sous le player.
-- ambiance noire cinéma.
+Le site doit ressembler à une vraie app streaming.
 
-## Style attendu
+### Priorités
 
-- Noir profond.
-- Violet premium.
-- Cards cinématiques.
-- Posters propres.
-- Gradients.
-- Blur.
-- Hover desktop.
-- Scroll horizontal mobile.
-- Bottom nav.
-- App native feeling.
+- bottom nav ;
+- top bar compacte ;
+- spacing tablette ;
+- hero responsive ;
+- cards immersives ;
+- scroll horizontal propre ;
+- cinematic layout ;
+- app feeling.
 
-## Priorité de développement
+### Correctifs déjà faits
 
-1. Stabiliser build Netlify.
-2. Créer WatchPlayerPage.
-3. Modifier tous les boutons Regarder vers `/watch/:animeId`.
-4. Améliorer CSS responsive mobile.
-5. Ajouter Prompt.md et README à jour.
-6. Améliorer Home dense façon Netflix/Crunchyroll.
-7. Ajouter cache/catalogue massif.
-8. Ajouter profils publics et playlists publiques.
+- overflow horizontal sécurisé ;
+- width/min-width sécurisés ;
+- auth responsive ;
+- player mobile amélioré ;
+- safe-area iOS/Android ;
+- grilles sécurisées ;
+- boutons full-width mobile.
+
+## Pages importantes
+
+- `/library`
+- `/watch/:animeId`
+- `/anime/:animeId`
+- `/favorites`
+- `/history`
+- `/my-playlist`
+- `/profile`
+- `/admin`
+
+## Inspiration UI
+
+### Netflix
+- Hero fullscreen.
+- Continue watching.
+- Rangées horizontales.
+- Lecture immédiate.
+- App mobile feeling.
+
+### Crunchyroll
+- Browse anime.
+- Watchlist.
+- UI anime-first.
+- Simulcasts.
+
+### AniList
+- Metadata riches.
+- Scores.
+- Relations.
+- Recommandations.
+
+### Kibo Anime
+- Homepage dense.
+- Catalogue déjà rempli.
+- Beaucoup de contenu visible.
+- Immersion immédiate.
+
+## Priorités actuelles
+
+1. Homepage fullscreen Netflix.
+2. Continue watching visuel.
+3. Catalogue massif.
+4. Recommandations dynamiques.
+5. Hero autoplay.
+6. Transitions premium.
+7. Mobile app feeling.
+8. Stabilisation WatchPlayer.
+9. Import metadata massif.
+10. Responsive finalisation.
 
 ## Ton attendu
 
-Travailler directement sur GitHub quand les connecteurs sont disponibles. Faire des commits propres. Éviter les longs discours. Priorité : code fonctionnel, build stable, UX propre.
+Quand les connecteurs sont disponibles :
+- agir directement sur GitHub ;
+- faire des commits propres ;
+- limiter les longs discours ;
+- priorité au produit réel.
