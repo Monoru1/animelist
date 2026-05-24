@@ -1,40 +1,8 @@
 # Animelist
 
-Animelist est une plateforme communautaire anime inspirée de Netflix, Crunchyroll, AniList, Kibo Anime, Plex, Apple TV et des interfaces premium modernes.
+Animelist évolue vers **Anime OS** : une plateforme communautaire anime mobile-first inspirée de Netflix, Crunchyroll, AniList, Kibo Anime, Plex, Apple TV et des interfaces premium modernes.
 
-Le projet évolue désormais vers :
-
-```txt
-Anime OS
-```
-
-Une plateforme anime immersive, communautaire, mobile-first et cinématique.
-
----
-
-# Vision
-
-Le but n’est plus de faire une simple bibliothèque anime.
-
-L’objectif est maintenant de construire :
-
-- une vraie homepage streaming ;
-- un watch player intégré ;
-- un système de playlists ;
-- un moteur communautaire ;
-- une expérience Netflix / Crunchyroll ;
-- une app anime moderne.
-
-Inspirations officielles :
-
-- Netflix
-- Crunchyroll
-- AniList
-- Kibo Anime
-- Plex
-- Steam UI
-- Apple TV
-- Active Theory
+Objectif : construire une vraie web app anime immersive avec homepage streaming, WatchPlayer interne, playlists, favoris, historique, profils, administration, sources structurées et expérience responsive sérieuse.
 
 ---
 
@@ -67,16 +35,19 @@ Inspirations officielles :
 
 ---
 
-# Fonctionnalités déjà présentes
+# État actuel
+
+Fonctionnalités en place :
 
 - Auth complète.
+- Pages `/login` et `/register` refaites en UI premium mobile-first.
 - Profils utilisateurs.
 - Rôles admin/user.
 - Bibliothèque publique.
 - Ajout d’anime.
 - Favoris.
 - Historique.
-- Continue watching.
+- Continue watching côté données.
 - Playlist utilisateur.
 - Notifications.
 - Hero dynamique.
@@ -89,40 +60,35 @@ Inspirations officielles :
 - WatchPlayer interne.
 - Épisodes générés automatiquement.
 - Sources par épisode.
-- Source pack global avec `{episode}` et `{ep2}`.
-- Support VF / VOSTFR / qualité.
+- Gestion source pack déplacée côté admin.
+- Support VF / VOSTFR / VF-VOSTFR.
+- Support qualité HD / 720p / 1080p / SD.
 - Support iframe / video directe / HLS côté données.
+- Responsive global renforcé.
+- Overflow horizontal verrouillé.
+- Cards stabilisées sur mobile.
+- Bottom nav mobile avec safe-area.
 
 ---
 
 # APIs anime
 
-## Déjà intégrées
+Déjà intégrées :
 
 - AniList API
 - Jikan API
 
-## Futures APIs
+À renforcer ensuite :
 
 - Kitsu API
-- TMDB API
+- TMDB API si utile
+- cache Supabase pour metadata
 
-Utilisation :
-
-- tendances ;
-- recommandations ;
-- saisons ;
-- metadata ;
-- posters ;
-- covers ;
-- studios ;
-- genres ;
-- popularité ;
-- synopsis.
+Utilisation : tendances, recommandations, saisons, metadata, posters, covers, studios, genres, popularité, synopsis.
 
 ---
 
-# Watch Player V3
+# Watch Player
 
 Route :
 
@@ -130,27 +96,33 @@ Route :
 /watch/:animeId
 ```
 
-Le player est le coeur du produit.
+Le WatchPlayer est le coeur du produit.
 
-Fonctionnalités en place :
+Fonctionnalités actuelles :
 
 - lecteur interne ;
 - sidebar épisodes ;
 - épisodes auto-générés ;
 - historique ;
 - progression ;
-- source switcher ;
-- langue VF / VOSTFR ;
-- qualité ;
+- source switcher propre ;
+- labels propres : `VF`, `VOSTFR`, `VF / VOSTFR` ;
+- qualité affichée ;
 - miniatures ;
 - mode fallback cinématique ;
-- bouton épisode précédent ;
-- bouton épisode suivant ;
-- support source pack global.
+- épisode précédent ;
+- épisode suivant ;
+- retour fiche anime.
 
-## Source Pack
+Important : le WatchPlayer public ne contient plus de formulaire de source. La gestion des sources est déplacée côté admin pour garder une expérience utilisateur propre.
 
-Le système permet de préparer plusieurs épisodes à partir d’une seule URL modèle :
+---
+
+# Admin Source Pack
+
+Dans `/admin`, l’admin peut préparer les sources d’un anime.
+
+Le Source Pack permet de générer plusieurs épisodes depuis une seule URL modèle :
 
 ```txt
 https://cdn.exemple.com/anime/episode-{episode}.mp4
@@ -169,10 +141,7 @@ https://cdn.exemple.com/anime/ep-{ep2}.m3u8
 01, 02, 03, 04...
 ```
 
-Le player crée ensuite les sources dans `episode_sources` pour chaque épisode disponible.
-
-Important :
-les boutons `Regarder` doivent ouvrir le lecteur interne.
+Les sources sont stockées dans `episode_sources`, pas exposées comme logique principale côté viewer.
 
 ---
 
@@ -202,26 +171,27 @@ Anime
                      └── Source
 ```
 
+Règle produit : tous les boutons `Regarder` doivent ouvrir `/watch/:animeId`. Les liens externes legacy ne doivent pas être l’expérience principale.
+
 ---
 
-# Responsive Direction
+# Responsive
 
-Le responsive doit maintenant se rapprocher fortement de :
+Dernier durcissement responsive :
 
-- Netflix mobile ;
-- Crunchyroll tablette ;
-- applications streaming natives.
+- `html`, `body`, `#root` verrouillés en `width: 100%` et `overflow-x: hidden` ;
+- `box-sizing` global ;
+- `min-width: 0` global ;
+- paddings responsive ;
+- cards plus stables ;
+- textes clampés ;
+- auth responsive ;
+- WatchPlayer mobile amélioré ;
+- boutons full-width sur petit mobile ;
+- bottom nav avec safe-area ;
+- grilles mobile sécurisées.
 
-Priorités :
-
-- bottom navigation ;
-- top bar compacte ;
-- spacing tablette ;
-- hero responsive ;
-- scroll horizontal premium ;
-- cards immersives ;
-- cinematic layout ;
-- app native feeling.
+Objectif : aucune page cassée sur mobile, tablette ou desktop.
 
 ---
 
@@ -234,7 +204,7 @@ La homepage doit devenir :
 - cinématique ;
 - streaming-first.
 
-Sections prévues :
+Sections cibles :
 
 - Hero fullscreen ;
 - Tendances ;
@@ -243,7 +213,7 @@ Sections prévues :
 - Continue Watching ;
 - Top communauté ;
 - Recommandations ;
-- Playlist publiques ;
+- Playlists publiques ;
 - Simulcasts.
 
 ---
@@ -256,22 +226,7 @@ Le fichier :
 Prompt.md
 ```
 
-contient toute la mémoire centrale du projet :
-
-- vision ;
-- architecture ;
-- responsive ;
-- watch system ;
-- APIs ;
-- roadmap ;
-- UX ;
-- règles ;
-- structure.
-
-Si une conversation saute :
-
-- recopier Prompt.md ;
-- reprendre immédiatement le développement.
+contient la mémoire centrale du projet. Il doit rester synchronisé avec le README.
 
 ---
 
@@ -298,12 +253,7 @@ pnpm build
 
 Netlify utilise frozen lockfile.
 
-Donc :
-
-si `package.json` change,
-il faut aussi commit `pnpm-lock.yaml`.
-
-Sinon le build casse.
+Si `package.json` change, il faut aussi commit `pnpm-lock.yaml`, sinon le build casse.
 
 ---
 
@@ -318,4 +268,4 @@ VITE_SUPABASE_ANON_KEY=
 
 # Objectif final
 
-Construire une plateforme anime immersive, communautaire et moderne capable d’évoluer vers un véritable Anime Streaming OS.
+Construire une plateforme anime immersive, communautaire et moderne capable d’évoluer vers un véritable Anime Streaming OS : propre sur mobile, solide sur desktop, centrée sur le WatchPlayer, sans redirections inutiles, avec sources structurées et UX startup premium.
