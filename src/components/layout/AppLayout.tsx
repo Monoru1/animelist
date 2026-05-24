@@ -10,21 +10,36 @@ const mainLinks = [
   { to: '/profile', label: 'Profil', icon: '◉' },
 ]
 
+const drawerLinks = [
+  { to: '/library', label: 'Accueil' },
+  { to: '/history', label: 'Continuer à regarder' },
+  { to: '/favorites', label: 'Favoris' },
+  { to: '/add', label: 'Ajouter un anime' },
+  { to: '/my-playlist', label: 'Ma playlist' },
+  { to: '/profile', label: 'Profil' },
+  { to: '/notifications', label: 'Notifications' },
+]
+
 export function AppLayout() {
   const navigate = useNavigate()
   const [isAdmin, setIsAdmin] = useState(false)
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false)
+  const [unreadCount, setUnreadCount] = useState(0)
 
   useEffect(() => {
-    async function loadRole() {
+    async function loadUserState() {
       const { data: authData } = await supabase.auth.getUser()
       const userId = authData.user?.id
       if (!userId) return
 
       const { data } = await supabase.from('profiles').select('role').eq('id', userId).single()
       setIsAdmin(data?.role === 'admin')
+
+      const { count } = await supabase.from('notifications').select('id', { count: 'exact', head: true }).eq('user_id', userId).is('read_at', null)
+      setUnreadCount(count ?? 0)
     }
 
-    void loadRole()
+    void loadUserState()
   }, [])
 
   async function signOut() {
@@ -32,29 +47,53 @@ export function AppLayout() {
     navigate('/login')
   }
 
+  function closeDrawer() {
+    setIsDrawerOpen(false)
+  }
+
   return (
     <div className="app-shell">
-      <aside className="app-sidebar">
-        <div className="brand-block">
-          <h1>Animelist</h1>
-          <p>Anime OS communautaire.</p>
-        </div>
-
-        <nav className="desktop-nav">
-          <NavLink to="/library" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>Accueil</NavLink>
-          <NavLink to="/history" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>Continuer</NavLink>
-          <NavLink to="/favorites" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>Favoris</NavLink>
-          <NavLink to="/add" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>Ajouter</NavLink>
-          <NavLink to="/my-playlist" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>Ma playlist</NavLink>
-          <NavLink to="/profile" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>Profil</NavLink>
-          <NavLink to="/notifications" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>Notifications</NavLink>
-          {isAdmin ? <NavLink to="/admin" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>Admin</NavLink> : null}
+      <header className="topbar">
+        <NavLink to="/library" className="topbar-logo" onClick={closeDrawer}>Animelist</NavLink>
+        <nav className="topbar-nav" aria-label="Navigation principale">
+          <NavLink to="/library" className={({ isActive }) => isActive ? 'topbar-link active' : 'topbar-link'}>Accueil</NavLink>
+          <NavLink to="/history" className={({ isActive }) => isActive ? 'topbar-link active' : 'topbar-link'}>Continuer</NavLink>
+          <NavLink to="/favorites" className={({ isActive }) => isActive ? 'topbar-link active' : 'topbar-link'}>Favoris</NavLink>
+          <NavLink to="/my-playlist" className={({ isActive }) => isActive ? 'topbar-link active' : 'topbar-link'}>Playlist</NavLink>
+          {isAdmin ? <NavLink to="/admin" className={({ isActive }) => isActive ? 'topbar-link active' : 'topbar-link'}>Admin</NavLink> : null}
         </nav>
+        <div className="topbar-actions">
+          <NavLink to="/notifications" className="icon-btn" aria-label="Notifications">
+            🔔{unreadCount > 0 ? <span className="notification-dot">{unreadCount}</span> : null}
+          </NavLink>
+          <NavLink to="/profile" className="icon-btn" aria-label="Profil">◉</NavLink>
+          <button type="button" className="icon-btn hamburger-btn" aria-label="Menu" onClick={() => setIsDrawerOpen(true)}>☰</button>
+          <button type="button" className="secondary-btn desktop-signout" onClick={() => void signOut()}>Déconnexion</button>
+        </div>
+      </header>
 
-        <button type="button" className="secondary-btn signout-btn" onClick={() => void signOut()}>
-          Déconnexion
-        </button>
-      </aside>
+      {isDrawerOpen ? (
+        <div className="drawer-backdrop" role="presentation" onClick={closeDrawer}>
+          <aside className="mobile-drawer" role="dialog" aria-modal="true" aria-label="Menu mobile" onClick={(event) => event.stopPropagation()}>
+            <div className="drawer-head">
+              <div>
+                <p className="eyebrow">ANIME OS</p>
+                <h2>Animelist</h2>
+              </div>
+              <button type="button" className="icon-btn" onClick={closeDrawer}>×</button>
+            </div>
+            <nav className="drawer-nav">
+              {drawerLinks.map((link) => (
+                <NavLink key={link.to} to={link.to} onClick={closeDrawer} className={({ isActive }) => isActive ? 'drawer-link active' : 'drawer-link'}>
+                  {link.label}
+                </NavLink>
+              ))}
+              {isAdmin ? <NavLink to="/admin" onClick={closeDrawer} className={({ isActive }) => isActive ? 'drawer-link active' : 'drawer-link'}>Administration</NavLink> : null}
+            </nav>
+            <button type="button" className="secondary-btn drawer-signout" onClick={() => void signOut()}>Déconnexion</button>
+          </aside>
+        </div>
+      ) : null}
 
       <main className="app-main">
         <Outlet />
