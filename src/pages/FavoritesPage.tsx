@@ -1,74 +1,83 @@
 import { Link } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
-import { supabase } from '@/services/supabaseClient'
-
-type FavoriteAnime = {
-  id: string
-  title: string
-  poster_url: string
-  genre: string | null
-  watch_url: string
-}
-
-type FavoriteRow = {
-  id: string
-  created_at: string
-  animes?: FavoriteAnime | FavoriteAnime[] | null
-}
-
-function getFavoriteAnime(animes: FavoriteRow['animes']) {
-  return Array.isArray(animes) ? animes[0] : animes
-}
-
-async function fetchFavorites(): Promise<FavoriteRow[]> {
-  const { data: authData } = await supabase.auth.getUser()
-  const userId = authData.user?.id
-  if (!userId) return []
-
-  const { data, error } = await supabase
-    .from('favorites')
-    .select('id,created_at,animes(id,title,poster_url,genre,watch_url)')
-    .eq('user_id', userId)
-    .order('created_at', { ascending: false })
-
-  if (error) throw error
-  return (data ?? []) as unknown as FavoriteRow[]
-}
+import { Heart } from 'lucide-react'
+import { AnimeSpotlightCard } from '@/components/anime/AnimeSpotlightCard'
+import { getFavoriteAnime, useFavorites } from '@/hooks/useFavorites'
 
 export function FavoritesPage() {
-  const { data: favorites = [], isLoading, error } = useQuery({ queryKey: ['favorites'], queryFn: fetchFavorites })
+  const { data: favorites = [], isLoading, isError, refetch } = useFavorites()
 
   return (
     <main>
-      <div className="surface-panel" style={{ marginBottom: 24 }}>
-        <p style={{ color: 'var(--color-accent-hi)', fontWeight: 900, margin: 0 }}>COLLECTION</p>
-        <h1 style={{ fontSize: 'clamp(2rem, 5vw, 4.5rem)', lineHeight: 1, margin: '12px 0' }}>Mes favoris</h1>
-        <p style={{ color: 'var(--color-text-muted)', fontSize: 18 }}>Tous les animés que tu as ajoutés en favoris.</p>
-      </div>
+      <section className="surface-panel" style={{ marginBottom: 24 }}>
+        <p className="eyebrow" style={{ margin: 0 }}>COLLECTION</p>
+        <h1 style={{ fontSize: 'clamp(2.5rem, 7vw, 5rem)', lineHeight: .95, margin: '12px 0' }}>Mes favoris</h1>
+        <p style={{ color: 'var(--color-text-muted)', maxWidth: 780, lineHeight: 1.7 }}>
+          Retrouve tous les animés que tu as sauvegardés pour continuer ton aventure Anime OS.
+        </p>
+      </section>
 
-      {isLoading ? <p>Chargement...</p> : null}
-      {error ? <p>Impossible de charger les favoris.</p> : null}
-      {!isLoading && favorites.length === 0 ? <p>Aucun favori pour le moment.</p> : null}
+      {isLoading ? (
+        <section className="card-grid">
+          {Array.from({ length: 8 }).map((_, index) => (
+            <div key={index} className="anime-card" style={{ minHeight: 360, opacity: .55, background: 'linear-gradient(135deg, rgba(255,255,255,.08), rgba(255,255,255,.02))' }} />
+          ))}
+        </section>
+      ) : null}
 
-      <div className="card-grid">
-        {favorites.map((item) => {
-          const anime = getFavoriteAnime(item.animes)
-          if (!anime) return null
+      {isError ? (
+        <section className="surface-panel" style={{ textAlign: 'center', display: 'grid', gap: 18 }}>
+          <div style={{ fontSize: 48 }}>⚠️</div>
+          <div>
+            <h2 style={{ marginTop: 0 }}>Impossible de charger les favoris</h2>
+            <p style={{ color: 'var(--color-text-muted)' }}>
+              Une désynchronisation temporaire est survenue. Réessaie maintenant.
+            </p>
+          </div>
+          <button className="primary-btn" type="button" onClick={() => void refetch()}>
+            Réessayer
+          </button>
+        </section>
+      ) : null}
 
-          return (
-            <article key={item.id} className="anime-card">
-              <Link to={`/anime/${anime.id}`} style={{ textDecoration: 'none' }}>
-                <img src={anime.poster_url} alt={anime.title} />
-              </Link>
-              <div style={{ padding: 16 }}>
-                <h2 style={{ fontSize: 20, marginTop: 0 }}>{anime.title}</h2>
-                {anime.genre ? <p style={{ color: 'var(--color-text-muted)' }}>{anime.genre}</p> : null}
-                <Link className="primary-btn" to={`/anime/${anime.id}`} style={{ display: 'block', textAlign: 'center', textDecoration: 'none' }}>Voir la fiche</Link>
-              </div>
-            </article>
-          )
-        })}
-      </div>
+      {!isLoading && !isError && favorites.length === 0 ? (
+        <section className="surface-panel" style={{ textAlign: 'center', display: 'grid', gap: 18 }}>
+          <div style={{ display: 'grid', placeItems: 'center', width: 90, height: 90, borderRadius: '50%', margin: '0 auto', background: 'rgba(124,92,255,.18)' }}>
+            <Heart size={38} />
+          </div>
+          <div>
+            <h2 style={{ marginTop: 0 }}>Aucun favori pour le moment</h2>
+            <p style={{ color: 'var(--color-text-muted)', maxWidth: 620, margin: '0 auto' }}>
+              Commence à sauvegarder des animés depuis la bibliothèque pour créer ta collection personnalisée.
+            </p>
+          </div>
+          <Link className="primary-btn" to="/library" style={{ justifySelf: 'center' }}>
+            Explorer la bibliothèque
+          </Link>
+        </section>
+      ) : null}
+
+      {!isLoading && !isError && favorites.length > 0 ? (
+        <section className="card-grid">
+          {favorites.map((favorite) => {
+            const anime = getFavoriteAnime(favorite.animes)
+            if (!anime) return null
+
+            return (
+              <AnimeSpotlightCard
+                key={favorite.id}
+                anime={{
+                  id: anime.id,
+                  title: anime.title,
+                  poster_url: anime.poster_url,
+                  synopsis: anime.genre ?? 'Anime sauvegardé dans tes favoris.',
+                  genres: anime.genre ? [anime.genre] : [],
+                  average_score: 0,
+                }}
+              />
+            )
+          })}
+        </section>
+      ) : null}
     </main>
   )
 }
