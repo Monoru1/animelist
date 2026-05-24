@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Animelist — Setup Database</title>
+<style>
+  body { font-family: monospace; background: #0a0a0b; color: #f5f5f7; padding: 40px; max-width: 900px; margin: 0 auto; }
+  h1 { color: #9b7cff; }
+  .step { background: #13131a; border: 1px solid #272733; border-radius: 12px; padding: 20px; margin: 16px 0; }
+  .step h3 { margin: 0 0 12px; color: #9b7cff; }
+  input { width: 100%; padding: 12px; background: #1c1c26; border: 1px solid #272733; border-radius: 8px; color: white; font-size: 14px; margin-bottom: 12px; }
+  button { padding: 12px 24px; background: linear-gradient(135deg, #7c5cff, #9b7cff); color: white; border: none; border-radius: 10px; font-weight: 900; cursor: pointer; font-size: 15px; }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+  #log { background: #050506; border: 1px solid #272733; border-radius: 8px; padding: 16px; min-height: 200px; white-space: pre-wrap; font-size: 13px; overflow-y: auto; max-height: 400px; }
+  .ok  { color: #4ade80; }
+  .err { color: #f87171; }
+  .info{ color: #60a5fa; }
+  .warn{ color: #fbbf24; }
+</style>
+</head>
+<body>
+<h1>🎌 Animelist — Setup Database</h1>
+<p style="color:#9999a8">Cet outil applique la migration SQL complète sur ton projet Supabase.</p>
+
+<div class="step">
+  <h3>1. Colle ta Service Role Key</h3>
+  <p style="color:#9999a8;margin:0 0 8px;font-size:13px">Supabase Dashboard → Settings → API → service_role (⚠️ secret)</p>
+  <input type="password" id="serviceKey" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." />
+  <button onclick="runMigration()">🚀 Appliquer la migration</button>
+</div>
+
+<div class="step">
+  <h3>2. Logs</h3>
+  <div id="log">En attente…</div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://eeulyztvuhkvamkareaz.supabase.co'
+
+const STATEMENTS = [
+  // favorites
+  `create table if not exists public.favorites (id uuid primary key default gen_random_uuid(), user_id uuid not null references auth.users(id) on delete cascade, anime_id uuid not null references public.animes(id) on delete cascade, created_at timestamptz not null default now(), unique(user_id, anime_id))`,
+  `alter table public.favorites enable row level security`,
+  `do $$ begin if not exists (select 1 from pg_policies where tablename='favorites' and policyname='favorites_select') then create policy favorites_select on public.favorites for select using (auth.uid() = user_id); end if; end $$`,
+  `do $$ begin if not exists (select 1 from pg_policies where tablename='favorites' and policyname='favorites_insert') then create policy favorites_insert on public.favorites for insert with check (auth.uid() = user_id); end if; end $$`,
+  `do $$ begin if not exists (select 1 from pg_policies where tablename='favorites' and policyname='favorites_delete') then create policy favorites_delete on public.favorites for delete using (auth.uid() = user_id); end if; end $$`,
+  // anime_episodes
+  `create table if not exists public.anime_episodes (id uuid primary key default gen_random_uuid(), anime_id uuid not null references public.animes(id) on delete cascade, season_number int not null default 1, episode_number int not null, title text, synopsis text, thumbnail_url text, duration_sec int, created_at timestamptz not null default now(), unique(anime_id, season_number, episode_number))`,
+  `alter table public.anime_episodes enable row level security`,
+  `do $$ begin if not exists (select 1 from pg_policies where tablename='anime_episodes' and policyname='episodes_public_read') then create policy episodes_public_read on public.anime_episodes for select using (true); end if; end $$`,
+  `do $$ begin if not exists (select 1 from pg_policies where tablename='anime_episodes' and policyname='episodes_admin_all') then create policy episodes_admin_all on public.anime_episodes for all using ((select role from public.profiles where id = auth.uid()) = 'admin') with check ((select role from public.profiles where id = auth.uid()) = 'admin'); end if; end $$`,
+  // episode_sources
+  `create table if not exists public.episode_sources (id uuid primary key default gen_random_uuid(), episode_id uuid not null references public.anime_episodes(id) on delete cascade, label text not null, language text not null default 'VOSTFR', quality text not null default 'HD', source_url text not null, source_type text not null default 'embed', provider_name text, is_default boolean not null default false, is_active boolean not null default true, status text not null default 'active', created_by uuid references auth.users(id), created_at timestamptz not null default now(), last_checked timestamptz)`,
+  `alter table public.episode_sources enable row level security`,
+  `do $$ begin if not exists (select 1 from pg_policies where tablename='episode_sources' and policyname='sources_public_read') then create policy sources_public_read on public.episode_sources for select using (is_active = true); end if; end $$`,
+  `do $$ begin if not exists (select 1 from pg_policies where tablename='episode_sources' and policyname='sources_admin_all') then create policy sources_admin_all on public.episode_sources for all using ((select role from public.profiles where id = auth.uid()) = 'admin') with check ((select role from public.profiles where id = auth.uid()) = 'admin'); end if; end $$`,
+  // watch_history
+  `create table if not exists public.watch_history (id uuid primary key default gen_random_uuid(), user_id uuid not null references auth.users(id) on delete cascade, anime_id uuid not null references public.animes(id) on delete cascade, progress_seconds int not null default 0, last_watched_at timestamptz not null default now(), unique(user_id, anime_id))`,
+  `alter table public.watch_history enable row level security`,
+  `do $$ begin if not exists (select 1 from pg_policies where tablename='watch_history' and policyname='history_select') then create policy history_select on public.watch_history for select using (auth.uid() = user_id); create policy history_upsert on public.watch_history for all using (auth.uid() = user_id) with check (auth.uid() = user_id); end if; end $$`,
+  // watch_progress
+  `create table if not exists public.watch_progress (id uuid primary key default gen_random_uuid(), user_id uuid not null references auth.users(id) on delete cascade, anime_id uuid not null references public.animes(id) on delete cascade, episode_id uuid references public.anime_episodes(id) on delete set null, progress_seconds int not null default 0, completed boolean not null default false, updated_at timestamptz not null default now(), unique(user_id, anime_id))`,
+  `alter table public.watch_progress enable row level security`,
+  `do $$ begin if not exists (select 1 from pg_policies where tablename='watch_progress' and policyname='progress_select') then create policy progress_select on public.watch_progress for select using (auth.uid() = user_id); create policy progress_upsert on public.watch_progress for all using (auth.uid() = user_id) with check (auth.uid() = user_id); end if; end $$`,
+  // source_reports
+  `create table if not exists public.source_reports (id uuid primary key default gen_random_uuid(), source_id uuid references public.episode_sources(id) on delete set null, anime_id uuid references public.animes(id) on delete cascade, episode_id uuid references public.anime_episodes(id) on delete set null, reported_by uuid references auth.users(id) on delete set null, reason text not null default 'Source cassée', created_at timestamptz not null default now(), resolved_at timestamptz)`,
+  `alter table public.source_reports enable row level security`,
+  `do $$ begin if not exists (select 1 from pg_policies where tablename='source_reports' and policyname='reports_insert') then create policy reports_insert on public.source_reports for insert with check (auth.uid() is not null); create policy reports_admin on public.source_reports for select using ((select role from public.profiles where id = auth.uid()) = 'admin'); end if; end $$`,
+  // watch_chat_messages
+  `create table if not exists public.watch_chat_messages (id uuid primary key default gen_random_uuid(), anime_id uuid not null references public.animes(id) on delete cascade, episode_id uuid references public.anime_episodes(id) on delete set null, user_id uuid not null references auth.users(id) on delete cascade, username text not null, message text not null check (char_length(message) <= 300), is_deleted boolean not null default false, deleted_at timestamptz, created_at timestamptz not null default now())`,
+  `alter table public.watch_chat_messages enable row level security`,
+  `do $$ begin if not exists (select 1 from pg_policies where tablename='watch_chat_messages' and policyname='chat_select') then create policy chat_select on public.watch_chat_messages for select using (is_deleted = false); create policy chat_insert on public.watch_chat_messages for insert with check (auth.uid() = user_id); create policy chat_update on public.watch_chat_messages for update using (auth.uid() = user_id or (select role from public.profiles where id = auth.uid()) = 'admin'); end if; end $$`,
+  `do $$ begin alter publication supabase_realtime add table public.watch_chat_messages; exception when others then null; end $$`,
+  // notifications colonnes
+  `alter table public.notifications add column if not exists read boolean not null default false`,
+  `alter table public.notifications add column if not exists type text not null default 'info'`,
+  `alter table public.notifications add column if not exists target_type text not null default 'user'`,
+  `alter table public.notifications add column if not exists created_by uuid references auth.users(id) on delete set null`,
+  `alter table public.notifications add column if not exists expires_at timestamptz`,
+  `alter table public.notifications enable row level security`,
+  `do $$ begin if not exists (select 1 from pg_policies where tablename='notifications' and policyname='notif_select') then create policy notif_select on public.notifications for select using (user_id = auth.uid() or target_type = 'global'); create policy notif_insert on public.notifications for insert with check ((select role from public.profiles where id = auth.uid()) = 'admin'); create policy notif_update on public.notifications for update using (user_id = auth.uid() or (select role from public.profiles where id = auth.uid()) = 'admin'); end if; end $$`,
+]
+
+const log = document.getElementById('log')
+function addLog(msg, cls = '') {
+  log.innerHTML += `<span class="${cls}">${msg}\n</span>`
+  log.scrollTop = log.scrollHeight
+}
+
+async function execSQL(serviceKey, sql) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/exec_sql`, {
+    method: 'POST',
+    headers: {
+      'apikey': serviceKey,
+      'Authorization': `Bearer ${serviceKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ sql_text: sql })
+  })
+  if (!res.ok) {
+    // Essai via l'endpoint query direct
+    const res2 = await fetch(`${SUPABASE_URL}/pg/v0/query`, {
+      method: 'POST',
+      headers: {
+        'apikey': serviceKey,
+        'Authorization': `Bearer ${serviceKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ query: sql })
+    })
+    if (!res2.ok) throw new Error(await res2.text())
+  }
+  return true
+}
+
+async function runMigration() {
+  const serviceKey = document.getElementById('serviceKey').value.trim()
+  if (!serviceKey || !serviceKey.startsWith('eyJ')) {
+    alert('Colle ta service_role key (commence par eyJ...)')
+    return
+  }
+  
+  document.querySelector('button').disabled = true
+  log.innerHTML = ''
+  addLog(`🚀 Démarrage migration — ${STATEMENTS.length} statements\n`, 'info')
+  
+  let ok = 0, fail = 0
+  for (let i = 0; i < STATEMENTS.length; i++) {
+    const sql = STATEMENTS[i]
+    const preview = sql.trim().slice(0, 60).replace(/\s+/g, ' ')
+    try {
+      await execSQL(serviceKey, sql)
+      addLog(`✓ [${i+1}/${STATEMENTS.length}] ${preview}…`, 'ok')
+      ok++
+    } catch(e) {
+      const msg = String(e)
+      if (msg.includes('already exists') || msg.includes('duplicate')) {
+        addLog(`~ [${i+1}/${STATEMENTS.length}] Déjà existant — ${preview}`, 'warn')
+        ok++
+      } else {
+        addLog(`✗ [${i+1}/${STATEMENTS.length}] ERREUR: ${msg.slice(0,100)}`, 'err')
+        fail++
+      }
+    }
+    await new Promise(r => setTimeout(r, 100))
+  }
+  
+  addLog(`\n${'='.repeat(50)}`, 'info')
+  addLog(`✓ ${ok} OK  ✗ ${fail} erreurs`, fail > 0 ? 'err' : 'ok')
+  if (fail === 0) addLog('\n🎉 Migration complète ! Ton site est prêt.', 'ok')
+  else addLog('\nSi des erreurs persistent, colle MIGRATION.sql dans le SQL Editor Supabase.', 'warn')
+  document.querySelector('button').disabled = false
+}
+</script>
+</body>
+</html>
