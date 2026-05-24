@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { Heart } from 'lucide-react'
-import { AnimeSpotlightCard } from '@/components/anime/AnimeSpotlightCard'
+import { CommunityAnimeCard } from '@/components/anime/AnimeSpotlightCard'
 import { getFavoriteAnime, useFavorites } from '@/hooks/useFavorites'
 
 export function FavoritesPage() {
@@ -63,15 +63,14 @@ export function FavoritesPage() {
             if (!anime) return null
 
             return (
-              <AnimeSpotlightCard
+              <CommunityAnimeCard
                 key={favorite.id}
                 anime={{
                   id: anime.id,
                   title: anime.title,
+                  genre: anime.genre,
                   poster_url: anime.poster_url,
-                  synopsis: anime.genre ?? 'Anime sauvegardé dans tes favoris.',
-                  genres: anime.genre ? [anime.genre] : [],
-                  average_score: 0,
+                  watch_url: anime.watch_url,
                 }}
               />
             )
